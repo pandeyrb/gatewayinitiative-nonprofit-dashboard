@@ -379,11 +379,7 @@ with hdr_l:
         unsafe_allow_html=True,
     )
 with hdr_r:
-    if active_filters:
-        st.markdown(
-            "".join(f'<span class="filter-pill">{f}</span>' for f in active_filters),
-            unsafe_allow_html=True,
-        )
+    pass
 
 st.divider()
 
