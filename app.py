@@ -129,7 +129,7 @@ def _get_categories(svc_str: str) -> list[str]:
     for cat, keywords in CATEGORY_MAP.items():
         for svc in svcs:
             for kw in keywords:
-                if kw.lower() in svc.lower() or svc.lower() in kw.lower():
+                if kw.lower() in svc.lower():
                     matched.add(cat)
     if not matched:
         return ["Other"] if svcs else ["Unknown"]
@@ -280,11 +280,6 @@ with st.sidebar:
 
     search = st.text_input("Search", placeholder="Name, city, or service…")
 
-    sel_status = st.selectbox(
-        "Partner Status",
-        ["All"] + sorted(df["Status"].unique().tolist()),
-    )
-
     all_cats = sorted(
         {c for lst in df["CatList"] for c in lst if c not in ("Unknown",)}
     )
@@ -293,7 +288,11 @@ with st.sidebar:
     all_pops = sorted({p for lst in df["PopList"] for p in lst if p})
     sel_pop = st.selectbox("Population Served", ["All"] + all_pops)
 
-    all_svcs = sorted({s for lst in df["SvcList"] for s in lst if s})
+    _known_kws = [kw.lower() for kws in CATEGORY_MAP.values() for kw in kws]
+    all_svcs = sorted({
+        s for lst in df["SvcList"] for s in lst
+        if s and any(kw in s.lower() for kw in _known_kws)
+    })
     sel_svc = st.selectbox("Specific Service", ["All"] + all_svcs)
 
     st.divider()
@@ -331,9 +330,6 @@ if search:
     )
     filtered = filtered[mask]
 
-if sel_status != "All":
-    filtered = filtered[filtered["Status"] == sel_status]
-
 if sel_cat != "All":
     filtered = filtered[filtered["CatList"].apply(lambda lst: sel_cat in lst)]
 
@@ -350,8 +346,6 @@ n_total = len(df)
 active_filters: list[str] = []
 if search:
     active_filters.append(f'"{search}"')
-if sel_status != "All":
-    active_filters.append(sel_status)
 if sel_cat != "All":
     active_filters.append(sel_cat)
 if sel_pop != "All":
