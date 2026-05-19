@@ -245,19 +245,23 @@ with st.sidebar:
     )
     st.divider()
 
-    search = st.text_input("Search", placeholder="Name, city, or service…")
+    search = st.text_input("Search", placeholder="Name, city, or service…", key="search")
 
     all_cats = sorted(
         {c for lst in df["CatList"] for c in lst if c not in ("Unknown",)}
     )
-    sel_cat = st.selectbox("Category", ["All"] + all_cats)
+    sel_cat = st.selectbox("Category", ["All"] + all_cats, key="sel_cat")
 
     all_org_types = sorted({t for t in df["OrgType"] if t})
-    sel_org_type = st.selectbox("Organization Type", ["All"] + all_org_types)
+    sel_org_type = st.selectbox("Organization Type", ["All"] + all_org_types, key="sel_org_type")
+
+    def _reset_filters():
+        st.session_state["search"] = ""
+        st.session_state["sel_cat"] = "All"
+        st.session_state["sel_org_type"] = "All"
 
     st.divider()
-    if st.button("↺  Reset all filters", use_container_width=True):
-        st.rerun()
+    st.button("↺  Reset all filters", use_container_width=True, on_click=_reset_filters)
 
     # legend: categories
     st.divider()
