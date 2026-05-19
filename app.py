@@ -31,88 +31,61 @@ BG_LIGHT = "#f8fafc"
 BG_SIDEBAR = "#f0f4f8"
 BORDER = "#e2e8f0"
 
-STATUS_HEX = {
-    "Active": "#16a34a",
-    "Potential/Prospective": "#ea580c",
-    "Unknown": "#6b7280",
-}
-STATUS_FOLIUM = {
-    "Active": "green",
-    "Potential/Prospective": "orange",
-    "Unknown": "gray",
-}
-
 # Category palette — aligned with CATEGORY_MAP below
 CAT_COLORS = {
-    "Education":                    "#e63946",  # vivid red
-    "Youth Development":            "#f4a261",  # warm orange
-    "Economic Mobility":            "#2a9d8f",  # teal
-    "Family & Basic Needs":         "#e9c46a",  # golden yellow
-    "Health & Wellness":            "#457b9d",  # steel blue
-    "Justice, Legal & Immigration": "#6a0572",  # deep purple
-    "Community & Civic Life":       "#2d6a4f",  # forest green
-    "Other":                        "#94a3b8",  # slate
-    "Unknown":                      "#cbd5e1",
+    "Education": "#e63946",
+    "Youth Development": "#f4a261",
+    "Economic Mobility": "#2a9d8f",
+    "Family & Basic Needs": "#e9c46a",
+    "Health & Wellness": "#457b9d",
+    "Justice, Legal & Immigration": "#6a0572",
+    "Community & Civic Life": "#2d6a4f",
+    "Other": "#94a3b8",
+    "Unknown": "#cbd5e1",
 }
 
-# Mapping from raw ServiceArea tags → broad categories
+# Mapping from v4 ServiceArea values → broad categories
 CATEGORY_MAP = {
     "Education": [
         "Education",
         "Adult education",
+        "Adult Education",
         "Literacy",
-        "College prep",
-        "Higher Education",
-        "After school/Out of school",
-        "Early childhood development",
-        "Applied Behavior Analysis (ABA) Services for Children with Autism",
+        "Youth Education",
     ],
     "Youth Development": [
         "Youth Development",
-        "After school/Out of school",
-        "Child Welfare/Protection Systems & Services",
-        "Mentoring",
+        "Youth Education",
     ],
     "Economic Mobility": [
-        "Economic Mobility/Workforce Development",
-        "Economic Development (Community-level)",
-        "Financial Literacy",
-        "Capacity Building Services",
+        "Economic Mobility",
+        "Non-Profit Support",
     ],
     "Family & Basic Needs": [
         "Family Services",
-        "Anti-Poverty Programs",
-        "Social Services",
         "Food Insecurity",
-        "Food pantry",
-        "Housing Insecurity/Homelessness",
+        "Housing Insecurity",
         "Homelessness",
-        "Intimate Partner/Domestic Violence",
-        "Other: Basic Needs",
+        "Human Services",
+        "Other: Basic needs",
         "Other: Clothing/Personal Growth",
     ],
     "Health & Wellness": [
-        "Health/Medical",
+        "Healthcare",
+        "Mental and Behavioral Health",
         "Mental Health",
-        "Public Health",
-        "Substance Use Disorders",
-        "Disabillities",
-        "Disabilities",
-        "Aging",
-        "Other: Adult Daycare",
+        "Disability Support",
+        "Elder Services",
+        "Early Intervention Services",
     ],
     "Justice, Legal & Immigration": [
-        "Legal Services",
         "Legal services",
-        "Criminal Justice",
-        "Immigration",
+        "Legal Services",
     ],
     "Community & Civic Life": [
-        "Athletics",
+        "Environmental Justice",
+        "Faith Institution",
         "Faith-based Services",
-        "Arts and Culture",
-        "Climate Change & Environmental Justice",
-        "Other: Equine Assisted Programs",
     ],
 }
 
@@ -185,7 +158,6 @@ st.markdown(
   [data-testid="stAlert"] {{ border-radius:8px !important; }}
   hr {{ border:none; border-top:1px solid {BORDER}; margin:10px 0; }}
 
-  /* Tab label font size */
   [data-testid="stTabs"] button[role="tab"] {{
     font-size:16px !important; font-weight:600 !important; }}
 </style>
@@ -197,7 +169,6 @@ st.markdown(
 # ── Lawrence, MA boundary ─────────────────────────────────────────────────────
 @st.cache_data(ttl=86400)
 def fetch_lawrence_boundary() -> dict | None:
-    """Fetch Lawrence, MA city boundary GeoJSON from Nominatim."""
     try:
         resp = requests.get(
             "https://nominatim.openstreetmap.org/search",
@@ -219,7 +190,7 @@ def fetch_lawrence_boundary() -> dict | None:
 
 
 # ── load & prep data ──────────────────────────────────────────────────────────
-CSV_PATH = "GWIorgs_v3.csv"
+CSV_PATH = "GWIorgs_v4.csv"
 
 
 @st.cache_data(ttl=3600)
@@ -228,19 +199,15 @@ def load_data(path: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     df = pd.read_csv(path, dtype=str).fillna("")
-    # Drop fully empty rows
     df = df[df["Name"].str.strip() != ""].reset_index(drop=True)
 
     df["Latitude"] = pd.to_numeric(df["Latitude"], errors="coerce")
     df["Longitude"] = pd.to_numeric(df["Longitude"], errors="coerce")
 
-    # Derive list columns from ServiceArea and Population
     df["SvcList"] = df["ServiceArea"].apply(_smart_split)
-    df["PopList"] = df["Population"].apply(_smart_split)
     df["CatList"] = df["ServiceArea"].apply(_get_categories)
-
-    # Status normalise
-    df["Status"] = df["Status"].str.strip().replace("", "Unknown")
+    if "Services" not in df.columns:
+        df["Services"] = ""
     return df
 
 
@@ -285,15 +252,8 @@ with st.sidebar:
     )
     sel_cat = st.selectbox("Category", ["All"] + all_cats)
 
-    all_pops = sorted({p for lst in df["PopList"] for p in lst if p})
-    sel_pop = st.selectbox("Population Served", ["All"] + all_pops)
-
-    _known_kws = [kw.lower() for kws in CATEGORY_MAP.values() for kw in kws]
-    all_svcs = sorted({
-        s for lst in df["SvcList"] for s in lst
-        if s and any(kw in s.lower() for kw in _known_kws)
-    })
-    sel_svc = st.selectbox("Specific Service", ["All"] + all_svcs)
+    all_org_types = sorted({t for t in df["OrgType"] if t})
+    sel_org_type = st.selectbox("Organization Type", ["All"] + all_org_types)
 
     st.divider()
     if st.button("↺  Reset all filters", use_container_width=True):
@@ -318,7 +278,6 @@ with st.sidebar:
         )
 
 
-
 # ── apply filters ─────────────────────────────────────────────────────────────
 filtered = df.copy()
 
@@ -326,6 +285,7 @@ if search:
     mask = (
         filtered["Name"].str.contains(search, case=False, na=False)
         | filtered["ServiceArea"].str.contains(search, case=False, na=False)
+        | filtered["Services"].str.contains(search, case=False, na=False)
         | filtered["City"].str.contains(search, case=False, na=False)
     )
     filtered = filtered[mask]
@@ -333,11 +293,8 @@ if search:
 if sel_cat != "All":
     filtered = filtered[filtered["CatList"].apply(lambda lst: sel_cat in lst)]
 
-if sel_pop != "All":
-    filtered = filtered[filtered["PopList"].apply(lambda lst: sel_pop in lst)]
-
-if sel_svc != "All":
-    filtered = filtered[filtered["SvcList"].apply(lambda lst: sel_svc in lst)]
+if sel_org_type != "All":
+    filtered = filtered[filtered["OrgType"] == sel_org_type]
 
 n_filtered = len(filtered)
 n_total = len(df)
@@ -348,10 +305,8 @@ if search:
     active_filters.append(f'"{search}"')
 if sel_cat != "All":
     active_filters.append(sel_cat)
-if sel_pop != "All":
-    active_filters.append(sel_pop)
-if sel_svc != "All":
-    active_filters.append(sel_svc)
+if sel_org_type != "All":
+    active_filters.append(sel_org_type)
 
 
 # ── page header ───────────────────────────────────────────────────────────────
@@ -400,7 +355,6 @@ with tab_map:
             tiles="CartoDB Voyager",
         )
 
-        # City boundary
         lawrence_geojson = fetch_lawrence_boundary()
         if lawrence_geojson:
             folium.GeoJson(
@@ -415,12 +369,9 @@ with tab_map:
             ).add_to(m)
 
         for _, row in map_data.iterrows():
-            status = row["Status"]
-            color_hex = STATUS_HEX.get(status, "#6b7280")
             cats = row["CatList"]
             pin_color = CAT_COLORS.get(cats[0] if cats else "Unknown", "#94a3b8")
             svc_tags = row["ServiceArea"] or "Not specified"
-            pop = row["Population"] or "Not specified"
             org_type = row["OrgType"] or "Not specified"
             url = row["URL"]
 
@@ -430,7 +381,7 @@ with tab_map:
                 f"background:{BRAND_DARK};color:white;border-radius:6px;"
                 f'font-size:12px;font-weight:600;text-decoration:none;">🔗 Visit Website</a>'
                 if url
-                else f'<span style="color:#94a3b8;font-size:12px;">No website listed</span>'
+                else '<span style="color:#94a3b8;font-size:12px;">No website listed</span>'
             )
 
             cat_badges = " ".join(
@@ -440,17 +391,12 @@ with tab_map:
             )
 
             popup_html = (
-                # Colored header bar
                 f'<div style="font-family:Inter,sans-serif;width:310px;'
                 f'border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.12);">'
                 f'<div style="background:{pin_color};padding:14px 16px;">'
                 f'<div style="font-size:15px;font-weight:700;color:white;'
                 f'line-height:1.3;">{row["Name"]}</div>'
-                f'<div style="margin-top:6px;">'
-                f'<span style="background:rgba(0,0,0,.25);color:white;border-radius:20px;'
-                f'padding:2px 10px;font-size:11px;font-weight:600;">{status}</span>'
-                f"</div></div>"
-                # Body
+                f"</div>"
                 f'<div style="padding:12px 16px;background:white;">'
                 f'<div style="margin-bottom:8px;">{cat_badges}</div>'
                 f'<table style="width:100%;border-collapse:collapse;font-size:12px;'
@@ -461,9 +407,6 @@ with tab_map:
                 f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
                 f'font-weight:700;text-transform:uppercase;white-space:nowrap;">Type</td>'
                 f"<td>{org_type}</td></tr>"
-                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
-                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">Population</td>'
-                f"<td>{pop}</td></tr>"
                 f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
                 f"font-weight:700;text-transform:uppercase;white-space:nowrap;"
                 f'vertical-align:top;">Services</td>'
@@ -485,7 +428,7 @@ with tab_map:
                 f'<path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 36 16 36S32 26 32 16C32 7.163 24.837 0 16 0z"'
                 f' fill="{pin_color}" stroke="#fff" stroke-width="2"/>'
                 f'<circle cx="16" cy="16" r="7" fill="white" opacity="0.85"/>'
-                f'</svg></div>'
+                f"</svg></div>"
             )
             folium.Marker(
                 location=[row["Latitude"], row["Longitude"]],
@@ -522,12 +465,10 @@ with tab_dir:
                     "State",
                     "Zip",
                     "URL",
-                    "Status",
                     "OrgType",
-                    "Population",
                     "ServiceArea",
                 ]
-            ].rename(columns={"OrgType": "Org Type"})
+            ].rename(columns={"OrgType": "Org Type", "ServiceArea": "Service Area"})
             st.download_button(
                 f"⬇️  Download {n_filtered} results as CSV",
                 data=export_df.to_csv(index=False).encode("utf-8"),
@@ -536,24 +477,8 @@ with tab_dir:
             )
 
         dir_df = (
-            filtered[
-                [
-                    "Name",
-                    "City",
-                    "Status",
-                    "OrgType",
-                    "Population",
-                    "ServiceArea",
-                    "URL",
-                ]
-            ]
-            .rename(
-                columns={
-                    "OrgType": "Org Type",
-                    "Population": "Population Served",
-                    "ServiceArea": "Services",
-                }
-            )
+            filtered[["Name", "City", "OrgType", "ServiceArea", "Services", "URL"]]
+            .rename(columns={"OrgType": "Org Type", "ServiceArea": "Service Area"})
             .copy()
         )
         st.dataframe(
@@ -584,21 +509,15 @@ with tab_detail:
             st.warning("Organization not found — please try another selection.")
         else:
             row = matches.iloc[0]
-            status = row["Status"]
-            badge_color = STATUS_HEX.get(status, "#6b7280")
             cats = row["CatList"]
-
-            # profile header
+            header_color = CAT_COLORS.get(cats[0] if cats else "Unknown", "#94a3b8")
 
             st.markdown(
                 f'<div style="background:{BG_WHITE};border-radius:12px;'
                 f"padding:22px 26px;box-shadow:0 1px 8px rgba(0,0,0,.08);"
-                f'border-left:5px solid {badge_color};margin-bottom:20px;">'
-                f'<h2 style="color:{BRAND_DARK};margin:0 0 8px;font-size:22px;">'
+                f'border-left:5px solid {header_color};margin-bottom:20px;">'
+                f'<h2 style="color:{BRAND_DARK};margin:0;font-size:22px;">'
                 f"{row['Name']}</h2>"
-                f'<span style="background:{badge_color};color:white;border-radius:20px;'
-                f'padding:3px 14px;font-size:12px;font-weight:700;margin-right:8px;">'
-                f"{status}</span>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -634,27 +553,24 @@ with tab_detail:
                     )
 
             with c2:
-                section_label("👥", "Population Served")
-                pops = row["PopList"]
-                st.write(" · ".join(pops) if pops else "Not specified")
-
                 section_label("🗂️", "Categories")
                 st.markdown(
                     " ".join(cat_badge(c) for c in cats) or "Not specified",
                     unsafe_allow_html=True,
                 )
 
-                section_label("🛠️", "Services & Focus Areas")
-                svcs = row["SvcList"]
-                if svcs:
+                section_label("🛠️", "Services")
+                detail_svcs = _smart_split(row.get("Services", ""))
+                if detail_svcs:
                     st.markdown(
-                        " ".join(f'<span class="svc-chip">{s}</span>' for s in svcs),
+                        " ".join(
+                            f'<span class="svc-chip">{s}</span>' for s in detail_svcs
+                        ),
                         unsafe_allow_html=True,
                     )
                 else:
                     st.write("Not specified")
 
-            # mini map
             if pd.notna(row["Latitude"]) and pd.notna(row["Longitude"]):
                 section_label("🗺️", "Location on Map")
                 mini = folium.Map(
@@ -665,9 +581,7 @@ with tab_detail:
                 folium.Marker(
                     location=[row["Latitude"], row["Longitude"]],
                     tooltip=row["Name"],
-                    icon=folium.Icon(
-                        color=STATUS_FOLIUM.get(status, "gray"), icon="info-sign"
-                    ),
+                    icon=folium.Icon(color="blue", icon="info-sign"),
                 ).add_to(mini)
                 st_folium(
                     mini, use_container_width=True, height=300, returned_objects=[]
