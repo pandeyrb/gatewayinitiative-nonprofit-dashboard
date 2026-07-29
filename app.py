@@ -190,7 +190,7 @@ def fetch_lawrence_boundary() -> dict | None:
 
 
 # ── load & prep data ──────────────────────────────────────────────────────────
-CSV_PATH = "GWIorgs_v4.csv"
+CSV_PATH = "GWIorgs_v5.csv"
 
 
 @st.cache_data(ttl=3600)
@@ -208,9 +208,16 @@ def load_data(path: str) -> pd.DataFrame:
     df["CatList"] = df["ServiceArea"].apply(_get_categories)
     if "Services" not in df.columns:
         df["Services"] = ""
+
+    df = df.rename(columns={"Impact Report": "ImpactReport",
+                            "Strategic Plan": "StrategicPlan"})
+
+    for col in ("ImpactReport", "StrategicPlan"):
+        if col not in df.columns:
+            df[col] = ""
+
     return df
-
-
+            
 df = load_data(CSV_PATH)
 
 if df.empty:
@@ -225,6 +232,15 @@ def cat_badge(cat: str) -> str:
     color = CAT_COLORS.get(cat, "#94a3b8")
     return f'<span class="cat-badge" style="background:{color};">{cat}</span>'
 
+def _link_cell(val: str) -> str: #New Change for v5
+    if val and str(val).strip():
+        v = str(val).strip()
+        href = v if v.startswith("http") else f"https://{v}"
+        return (
+            f'<a href="{href}" target="_blank" '
+            f'style="color:{BRAND_MED};text-decoration:underline;">View</a>'
+        )
+    return '<span style="color:#94a3b8;">N/A</span>'
 
 _NO_RESULTS = (
     "No organizations match the current filters.  \n"
@@ -378,6 +394,9 @@ with tab_map:
             svc_tags = row["ServiceArea"] or "Not specified"
             org_type = row["OrgType"] or "Not specified"
             url = row["URL"]
+            
+            impact = row.get("ImpactReport", "")
+            strategic = row.get("StrategicPlan", "")
 
             url_html = (
                 f'<a href="{url}" target="_blank" '
@@ -414,8 +433,14 @@ with tab_map:
                 f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
                 f"font-weight:700;text-transform:uppercase;white-space:nowrap;"
                 f'vertical-align:top;">Services</td>'
-                f'<td style="color:{TEXT_MID};">{svc_tags}</td></tr>'
-                f"</table>"
+                f'<td style="color:{TEXT_MID};">{svc_tags}</td></tr>' ##New Change for v5
+                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">Impact Report</td>'
+                f"<td>{_link_cell(impact)}</td></tr>"
+                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">Strategic Plan</td>'
+                f"<td>{_link_cell(strategic)}</td></tr>"
+                f"</table>" ##New Change for v5
                 f"{url_html}"
                 f"</div></div>"
             )
@@ -471,6 +496,8 @@ with tab_dir:
                     "URL",
                     "OrgType",
                     "ServiceArea",
+                    "ImpactReport",
+                    "StrategicPlan"
                 ]
             ].rename(columns={"OrgType": "Org Type", "ServiceArea": "Service Area"})
             st.download_button(
@@ -481,16 +508,23 @@ with tab_dir:
             )
 
         dir_df = (
-            filtered[["Name", "City", "OrgType", "ServiceArea", "Services", "URL"]]
-            .rename(columns={"OrgType": "Org Type", "ServiceArea": "Service Area"})
+            filtered[["Name", "City", "OrgType", "ServiceArea", "Services", "URL", "ImpactReport", "StrategicPlan"]]
+            .rename(columns={"OrgType": "Org Type", "ServiceArea": "Service Area", "ImpactReport" : "Impact Report", "StrategicPlan" : "Strategic Plan"})
             .copy()
         )
+        for c in ("Impact Report", "Strategic Plan"):
+            dir_df[c] = dir_df[c].apply(
+                lambda v: "" if not str(v).strip()
+                else (str(v) if str(v).startswith("http") else f"https://{v}")
+            )
         st.dataframe(
             dir_df,
             use_container_width=True,
             height=520,
             column_config={
                 "URL": st.column_config.LinkColumn("Website", display_text="🔗 Open"),
+                "Impact Report": st.column_config.LinkColumn("Impact Report", display_text="📊 Open"),
+                "Strategic Plan": st.column_config.LinkColumn("Strategic Plan", display_text="🧭 Open"),
             },
             hide_index=True,
         )
@@ -555,6 +589,12 @@ with tab_detail:
                         f"<span style='color:{TEXT_MID};'>Not listed</span>",
                         unsafe_allow_html=True,
                     )
+                    
+                section_label("📊", "Impact Report") ##New change for v5
+                st.markdown(_link_cell(row.get("ImpactReport", "")), unsafe_allow_html=True)
+
+                section_label("🧭", "Strategic Plan") ##New change for v5
+                st.markdown(_link_cell(row.get("StrategicPlan", "")), unsafe_allow_html=True) 
 
             with c2:
                 section_label("🗂️", "Categories")
