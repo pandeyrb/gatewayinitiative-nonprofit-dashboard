@@ -34,7 +34,7 @@ HEADERS = {
     )
 }
 
-CSV_PATH = "../GWIorgs_v5.csv"  # run this script from inside "Impact:Strategic Plan/"
+CSV_PATH = "GWIorgs_v5.csv"  # run this script from inside "Impact:Strategic Plan/"
 OUTPUT_PATH = "org_services.csv"
 
 REQUEST_TIMEOUT = (
@@ -43,6 +43,8 @@ REQUEST_TIMEOUT = (
 ORG_TIME_BUDGET = (
     90  # seconds max to spend on one org (crawling + Gemini) before moving on
 )
+
+
 
 # ── keyword list (step 1) ───────────────────────────────────────────────────
 SERVICE_PAGE_KEYWORDS = [
@@ -77,19 +79,22 @@ def get_all_links(url: str) -> list[dict]:
         return []
     try:
         page = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
-        soup = BeautifulSoup(
-            page.text, "html.parser"
-        )  # NOTE: "html.parser", not "html_parser"
-    except Exception:
+        if page.status_code != 200:
+            return []
+        soup = BeautifulSoup(page.text, "html.parser")
+        
+    except Exception as e:
+        print(f"    get_all_links failed on {url}: {type(e).__name__}: {e}")
         return []
 
-    base_domain = urlparse(url).netloc
+    base_domain = urlparse(page.url).netloc
+    
     links, seen = [], set()
     for a in soup.find_all("a"):
         href = a.get("href")
         if not href:
             continue
-        full_url = urljoin(url, href)
+        full_url = urljoin(page.url, href)
         label = a.get_text(" ", strip=True)
         same_site = urlparse(full_url).netloc == base_domain
         is_pdf = full_url.lower().endswith(".pdf")
@@ -108,7 +113,7 @@ def get_page_text(url: str) -> str:
         soup = BeautifulSoup(page.text, "html.parser")
         for tag in soup(["script", "style", "noscript"]):
             tag.extract()
-        return soup.get_text(" ").lower()
+        return soup.get_text(" ")
     except Exception:
         return ""
 
@@ -116,7 +121,7 @@ def get_page_text(url: str) -> str:
 # ── STEP 1: keyword-LOCATE relevant pages for services (not classify) ──────
 
 
-def find_service_pages(all_links: list[dict], limit: int = 3) -> list[str]:
+def find_service_pages(all_links: list[dict], limit: int = 6) -> list[str]:
     """
     Find candidate Services/Programs/Get-Help pages by keyword, so we know
     WHERE to read for services — this replaces the old fixed 11-category
@@ -183,13 +188,17 @@ Read it and list every distinct service or program this organization appears to
 offer. Be specific rather than broad (e.g. "ESOL classes" rather than just
 "Education"). An organization can have many services — list all that you find.
 
-Reply as a single comma-separated list, nothing else.
+Merge near-duplicates — do not list the same service twice because it is
+offered in different formats or described in different words.
+Aim for 5-12 tags.
+
+Reply with one service per line, nothing else. No bullets, no numbering.
 
 TEXT:
 {page_text[:6000]}"""
 
     response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-    return [tag.strip() for tag in response.text.split(",") if tag.strip()]
+    return [line.strip("-•* ").strip() for line in response.text.splitlines() if line.strip()]
 
 
 # ── per-org orchestration ───────────────────────────────────────────────────
@@ -205,28 +214,41 @@ def process_org(name: str, url: str) -> dict:
         service_pages = [url]  # fall back to homepage text
     combined_text = " ".join(get_page_text(p) for p in service_pages)
 
+    try:
+        landed = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT).url if url.startswith("http") else url
+    except Exception:
+        landed = url  # bookkeeping only — don't lose the row over it
+
+    redirected = urlparse(landed).netloc != urlparse(url).netloc
+
     services, service_method = [], "none_found"
-    if combined_text.strip():
+    if len(combined_text.strip()) < 500:
+        service_method = "too_little_text"
+    else:
         try:
             services = ask_gemini_for_services(name, combined_text)
-            service_method = "gemini"
+            service_method = "redirected_domain" if redirected else "gemini"
         except Exception as e:
-            print(f"    Gemini service extraction failed: {e}")
+            print(f"    Gemini failed: {e}")
             service_method = "gemini_error"
 
     return {
         "Name": name,
         "Services": ", ".join(services),
         "Service_Method": service_method,
+        "Source_URLs": " | ".join(service_pages),
+        "Landed_URL": landed,
     }
 
 
 def main():
     df = pd.read_csv(CSV_PATH, dtype=str).fillna("")
     df = df[df["Name"].str.strip() != ""].reset_index(drop=True)
-    # NOTE: no .head(n) here on purpose — the earlier notebook silently only
-    # ran on 10 orgs while its output CSV claimed 65. Confirm this runs on
-    # the FULL df before trusting any coverage numbers.
+    df = df.head(5)
+    # NOTE (from skeleton): no .head(n) in the final version — the earlier
+    # notebook silently ran on 10 orgs while its output CSV claimed 65.
+    # Confirm this runs on the FULL df before trusting any coverage numbers.
+
 
     rows = []
     for i, row in df.iterrows():
@@ -257,7 +279,8 @@ def main():
 
         time.sleep(2)  # be polite to the sites we're hitting
 
-    out = pd.DataFrame(rows)
+    out = pd.DataFrame(rows).merge(df[["Name", "Services"]].rename(columns={"Services": "Old_Services"}), on="Name", how="left")
+    out.to_csv(OUTPUT_PATH, index=False)
     n_services = (out["Services"] != "").sum()
     n_timeout = (out["Service_Method"] == "timeout").sum()
     print(f"\nDone. Services: {n_services}/{len(out)}")
