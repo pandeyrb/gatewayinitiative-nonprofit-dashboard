@@ -63,7 +63,6 @@ SERVICE_PAGE_KEYWORDS = [
     "how we help",
     "for-clients",
     "client-services",
-    "support",
     "resources-for",
     "initiatives",
     "areas-of-focus",
@@ -119,17 +118,18 @@ def get_page_text(url: str) -> str:
 
 
 # ── STEP 1: keyword-LOCATE relevant pages for services (not classify) ──────
-
+EXCLUDE_URL_PARTS = [
+    "donate", "donation", "ways-to-give", "supporters",
+    "sponsor", "volunteer", "membership", "corporate-partnership",
+]
 
 def find_service_pages(all_links: list[dict], limit: int = 6) -> list[str]:
-    """
-    Find candidate Services/Programs/Get-Help pages by keyword, so we know
-    WHERE to read for services — this replaces the old fixed 11-category
-    scanner, which classified text instead of just finding the right page.
-    """
     matches = []
     for link in all_links:
-        haystack = (link["url"] + " " + link["label"]).lower()
+        url_lower = link["url"].lower()
+        if any(bad in url_lower for bad in EXCLUDE_URL_PARTS):
+            continue
+        haystack = (url_lower + " " + link["label"].lower())
         if any(kw in haystack for kw in SERVICE_PAGE_KEYWORDS):
             matches.append(link["url"])
     return matches[:limit]
@@ -202,7 +202,13 @@ TEXT:
 
 
 # ── per-org orchestration ───────────────────────────────────────────────────
-
+def looks_like_services(services: list[str]) -> bool:
+    """Reject refusals and prose — real service tags are short phrases."""
+    if len(services) < 2:
+        return False
+    if any(len(s) > 80 for s in services):
+        return False
+    return True
 
 def process_org(name: str, url: str) -> dict:
     print(f"  {name} ...")
@@ -219,7 +225,7 @@ def process_org(name: str, url: str) -> dict:
     except Exception:
         landed = url  # bookkeeping only — don't lose the row over it
 
-    redirected = urlparse(landed).netloc != urlparse(url).netloc
+    redirected = urlparse(landed).netloc.removeprefix("www.") != urlparse(url).netloc.removeprefix("www.")
 
     services, service_method = [], "none_found"
     if len(combined_text.strip()) < 500:
@@ -227,7 +233,11 @@ def process_org(name: str, url: str) -> dict:
     else:
         try:
             services = ask_gemini_for_services(name, combined_text)
-            service_method = "redirected_domain" if redirected else "gemini"
+            if not looks_like_services(services):
+                services = []
+                service_method = "unusable_output"
+            else:
+                service_method = "redirected_domain" if redirected else "gemini"
         except Exception as e:
             print(f"    Gemini failed: {e}")
             service_method = "gemini_error"
@@ -244,7 +254,14 @@ def process_org(name: str, url: str) -> dict:
 def main():
     df = pd.read_csv(CSV_PATH, dtype=str).fillna("")
     df = df[df["Name"].str.strip() != ""].reset_index(drop=True)
-    df = df.head(5)
+    # df = df[df["Name"].isin([
+    #     "Phoenix Charter Academy",
+    #     "Notre Dame Cristo Rey",
+    #     "Uncommon Threads",
+    #     "Lawrence Boys and Girls Club",
+    #     "Lawrence Partnership",
+    #     "The Community Builders",
+    # ])].reset_index(drop=True)
     # NOTE (from skeleton): no .head(n) in the final version — the earlier
     # notebook silently ran on 10 orgs while its output CSV claimed 65.
     # Confirm this runs on the FULL df before trusting any coverage numbers.

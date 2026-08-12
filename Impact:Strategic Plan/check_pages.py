@@ -1,7 +1,5 @@
-import requests
-from unified_crawler_starter import HEADERS, REQUEST_TIMEOUT
-
-r = requests.get("https://brhousing.org", headers=HEADERS, timeout=REQUEST_TIMEOUT)
-print(r.status_code)
-print(r.url)
-print(len(r.text))
+import pandas as pd
+a = pd.read_csv("org_services_run4.csv")
+b = pd.read_csv("org_services.csv")
+pd.concat([a, b]).to_csv("org_services_sample10.csv", index=False)
+print(len(pd.read_csv("org_services_sample10.csv")))
