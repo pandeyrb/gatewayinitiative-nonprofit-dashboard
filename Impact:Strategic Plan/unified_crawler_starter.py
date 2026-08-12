@@ -40,9 +40,22 @@ OUTPUT_PATH = "org_services.csv"
 REQUEST_TIMEOUT = (
     10  # seconds per HTTP request — one slow site shouldn't stall everything
 )
+GEMINI_TIMEOUT = 30  # seconds max to wait on a single Gemini call
 ORG_TIME_BUDGET = (
     90  # seconds max to spend on one org (crawling + Gemini) before moving on
 )
+
+# Orgs are processed concurrently (I/O-bound: HTTP + Gemini waits, not CPU),
+# so this is the real lever on total run time — not machine specs. Raise it
+# if the run still feels slow and you're not seeing rate-limit errors;
+# lower it if sites start rejecting requests.
+MAX_WORKERS = int(os.getenv("CRAWLER_MAX_WORKERS", "8"))
+
+# Set CRAWLER_LIMIT=10 (env var) to test on a subset. Leave unset for the
+# full run. This is intentionally NOT a hardcoded df.head(n) in the code —
+# a hardcoded cap is exactly how an earlier version of this pipeline
+# silently ran on 10 orgs while its output CSV claimed 65.
+CRAWLER_LIMIT = os.getenv("CRAWLER_LIMIT")
 
 
 
@@ -73,22 +86,25 @@ SERVICE_PAGE_KEYWORDS = [
 # ── crawling helpers (reused from the existing report-finder notebook) ─────
 
 
-def get_all_links(url: str) -> list[dict]:
-    """Same-domain links + any PDF links found on `url`."""
+def get_all_links(url: str) -> tuple[list[dict], str]:
+    """Same-domain links + any PDF links found on `url`, plus the landed URL
+    (after redirects) — returned here so callers don't need a second request
+    just to find out where `url` redirected to."""
     if not url.startswith("http"):
-        return []
+        return [], url
     try:
         page = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
         if page.status_code != 200:
-            return []
+            return [], url
         soup = BeautifulSoup(page.text, "html.parser")
-        
+
     except Exception as e:
         print(f"    get_all_links failed on {url}: {type(e).__name__}: {e}")
-        return []
+        return [], url
 
-    base_domain = urlparse(page.url).netloc
-    
+    landed_url = page.url
+    base_domain = urlparse(landed_url).netloc
+
     links, seen = [], set()
     for a in soup.find_all("a"):
         href = a.get("href")
@@ -101,7 +117,7 @@ def get_all_links(url: str) -> list[dict]:
         if (same_site or is_pdf) and full_url not in seen:
             seen.add(full_url)
             links.append({"url": full_url, "label": label})
-    return links
+    return links, landed_url
 
 
 def get_page_text(url: str) -> str:
@@ -197,7 +213,15 @@ Reply with one service per line, nothing else. No bullets, no numbering.
 TEXT:
 {page_text[:6000]}"""
 
-    response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+    from google.genai import types
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT * 1000)
+        ),
+    )
     return [line.strip("-•* ").strip() for line in response.text.splitlines() if line.strip()]
 
 
@@ -206,18 +230,17 @@ TEXT:
 
 def process_org(name: str, url: str) -> dict:
     print(f"  {name} ...")
-    all_links = get_all_links(url)
+    all_links, landed = get_all_links(url)
 
     # keyword-locate pages, then Gemini open-ended extraction
     service_pages = find_service_pages(all_links)
     if not service_pages:
         service_pages = [url]  # fall back to homepage text
-    combined_text = " ".join(get_page_text(p) for p in service_pages)
 
-    try:
-        landed = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT).url if url.startswith("http") else url
-    except Exception:
-        landed = url  # bookkeeping only — don't lose the row over it
+    # Fetch candidate service pages concurrently — these are independent
+    # HTTP requests, no reason to wait on them one at a time.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(service_pages)) as pool:
+        combined_text = " ".join(pool.map(get_page_text, service_pages))
 
     redirected = urlparse(landed).netloc != urlparse(url).netloc
 
@@ -244,40 +267,39 @@ def process_org(name: str, url: str) -> dict:
 def main():
     df = pd.read_csv(CSV_PATH, dtype=str).fillna("")
     df = df[df["Name"].str.strip() != ""].reset_index(drop=True)
-    df = df.head(5)
-    # NOTE (from skeleton): no .head(n) in the final version — the earlier
-    # notebook silently ran on 10 orgs while its output CSV claimed 65.
-    # Confirm this runs on the FULL df before trusting any coverage numbers.
 
+    if CRAWLER_LIMIT:
+        df = df.head(int(CRAWLER_LIMIT))
+        print(f"CRAWLER_LIMIT set — running on {len(df)} orgs only (testing mode).")
 
     rows = []
-    for i, row in df.iterrows():
-        print(f"[{i + 1}/{len(df)}] {row['Name']} ...", end=" ", flush=True)
-        start = time.time()
+    # One shared pool for the whole run, sized by MAX_WORKERS: this is what
+    # actually parallelizes the work. Every org's HTTP/Gemini calls still
+    # have their own timeouts (REQUEST_TIMEOUT, GEMINI_TIMEOUT), and
+    # ORG_TIME_BUDGET below is still the hard per-org ceiling — but now
+    # MAX_WORKERS orgs are in flight at once instead of one at a time.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        submitted = [
+            (executor.submit(process_org, row["Name"], row["URL"]), row["Name"], time.time())
+            for _, row in df.iterrows()
+        ]
 
-        # Run this org on its own thread with a hard time budget. If a slow
-        # site or a stuck Gemini call blows past ORG_TIME_BUDGET, we give up
-        # and move on instead of stalling the whole run on one bad org.
-        # NOTE: Python can't force-kill a thread, so the abandoned call keeps
-        # running in the background — this just stops it from blocking US.
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        future = executor.submit(process_org, row["Name"], row["URL"])
-        try:
-            result = future.result(timeout=ORG_TIME_BUDGET)
-            print(f"({time.time() - start:.0f}s)")
-        except concurrent.futures.TimeoutError:
-            print(f"TIMED OUT after {ORG_TIME_BUDGET}s — skipping")
-            result = {"Name": row["Name"], "Services": "", "Service_Method": "timeout"}
-        except Exception as e:
-            print(f"ERROR: {e} — skipping")
-            result = {"Name": row["Name"], "Services": "", "Service_Method": "error"}
+        for i, (future, name, start) in enumerate(submitted):
+            print(f"[{i + 1}/{len(df)}] {name} ...", end=" ", flush=True)
+            try:
+                result = future.result(timeout=ORG_TIME_BUDGET)
+                print(f"({time.time() - start:.0f}s)")
+            except concurrent.futures.TimeoutError:
+                print(f"TIMED OUT after {ORG_TIME_BUDGET}s — skipping")
+                result = {"Name": name, "Services": "", "Service_Method": "timeout"}
+            except Exception as e:
+                print(f"ERROR: {e} — skipping")
+                result = {"Name": name, "Services": "", "Service_Method": "error"}
 
-        rows.append(result)
-        # save after every org, not just at the end, so an interrupted or
-        # killed run still leaves a usable CSV instead of an ambiguous partial one
-        pd.DataFrame(rows).to_csv(OUTPUT_PATH, index=False)
-
-        time.sleep(2)  # be polite to the sites we're hitting
+            rows.append(result)
+            # save after every org, not just at the end, so an interrupted or
+            # killed run still leaves a usable CSV instead of an ambiguous partial one
+            pd.DataFrame(rows).to_csv(OUTPUT_PATH, index=False)
 
     out = pd.DataFrame(rows).merge(df[["Name", "Services"]].rename(columns={"Services": "Old_Services"}), on="Name", how="left")
     out.to_csv(OUTPUT_PATH, index=False)
