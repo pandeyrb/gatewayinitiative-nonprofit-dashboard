@@ -13,6 +13,8 @@ import streamlit as st
 
 from streamlit_folium import st_folium
 
+from search_utils import matches as _search_matches
+
 # ── page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="GWI Nonprofit Partner Explorer",
@@ -190,7 +192,7 @@ def fetch_lawrence_boundary() -> dict | None:
 
 
 # ── load & prep data ──────────────────────────────────────────────────────────
-CSV_PATH = "GWIorgs_v5.csv"
+CSV_PATH = "data/GWIorgs_v6.csv"
 
 
 @st.cache_data(ttl=3600)
@@ -208,6 +210,7 @@ def load_data(path: str) -> pd.DataFrame:
     df["CatList"] = df["ServiceArea"].apply(_get_categories)
     if "Services" not in df.columns:
         df["Services"] = ""
+    df["SvcTagList"] = df["Services"].apply(_smart_split)
 
     df = df.rename(columns={"Impact Report": "ImpactReport",
                             "Strategic Plan": "StrategicPlan"})
@@ -228,10 +231,6 @@ if df.empty:
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
-def cat_badge(cat: str) -> str:
-    color = CAT_COLORS.get(cat, "#94a3b8")
-    return f'<span class="cat-badge" style="background:{color};">{cat}</span>'
-
 def _link_cell(val: str) -> str: #New Change for v5
     if val and str(val).strip():
         v = str(val).strip()
@@ -263,55 +262,45 @@ with st.sidebar:
 
     search = st.text_input("Search", placeholder="Name, city, or service…", key="search")
 
-    all_cats = sorted(
-        {c for lst in df["CatList"] for c in lst if c not in ("Unknown",)}
+    all_services = sorted({s for lst in df["SvcTagList"] for s in lst})
+    sel_svcs = st.multiselect(
+        "Services",
+        all_services,
+        key="sel_svcs",
+        placeholder="Type to search services…",
     )
-    sel_cat = st.selectbox("Category", ["All"] + all_cats, key="sel_cat")
 
     all_org_types = sorted({t for t in df["OrgType"] if t})
     sel_org_type = st.selectbox("Organization Type", ["All"] + all_org_types, key="sel_org_type")
 
     def _reset_filters():
         st.session_state["search"] = ""
-        st.session_state["sel_cat"] = "All"
+        st.session_state["sel_svcs"] = []
         st.session_state["sel_org_type"] = "All"
 
     st.divider()
     st.button("↺  Reset all filters", use_container_width=True, on_click=_reset_filters)
-
-    # legend: categories
-    st.divider()
-    st.markdown(
-        f"<p style='font-size:12px;font-weight:700;color:{TEXT_DARK};"
-        "margin:0 0 6px;'>MARKER CATEGORIES</p>",
-        unsafe_allow_html=True,
-    )
-    for label, hex_c in CAT_COLORS.items():
-        if label in ("Other", "Unknown"):
-            continue
-        st.markdown(
-            f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:5px;"
-            f"font-size:13px;color:{TEXT_DARK};'>"
-            f"<span style='width:12px;height:12px;border-radius:50%;background:{hex_c};"
-            f"flex-shrink:0;display:inline-block;'></span>{label}</div>",
-            unsafe_allow_html=True,
-        )
 
 
 # ── apply filters ─────────────────────────────────────────────────────────────
 filtered = df.copy()
 
 if search:
-    mask = (
-        filtered["Name"].str.contains(search, case=False, na=False)
-        | filtered["ServiceArea"].str.contains(search, case=False, na=False)
-        | filtered["Services"].str.contains(search, case=False, na=False)
-        | filtered["City"].str.contains(search, case=False, na=False)
-    )
-    filtered = filtered[mask]
+    # Stem-aware matching with a small alias list — see search_utils.py.
+    # Plain substring matching missed "diapers" against "Diaper Distribution"
+    # and treated ESL/ESOL as unrelated.
+    def _row_matches(row) -> bool:
+        blob = " ".join(
+            str(row[c]) for c in ("Name", "ServiceArea", "Services", "City")
+        )
+        return _search_matches(search, blob)
 
-if sel_cat != "All":
-    filtered = filtered[filtered["CatList"].apply(lambda lst: sel_cat in lst)]
+    filtered = filtered[filtered.apply(_row_matches, axis=1)]
+
+if sel_svcs:
+    filtered = filtered[
+        filtered["SvcTagList"].apply(lambda lst: any(s in lst for s in sel_svcs))
+    ]
 
 if sel_org_type != "All":
     filtered = filtered[filtered["OrgType"] == sel_org_type]
@@ -323,8 +312,8 @@ n_total = len(df)
 active_filters: list[str] = []
 if search:
     active_filters.append(f'"{search}"')
-if sel_cat != "All":
-    active_filters.append(sel_cat)
+if sel_svcs:
+    active_filters.extend(sel_svcs)
 if sel_org_type != "All":
     active_filters.append(sel_org_type)
 
@@ -372,7 +361,7 @@ with tab_map:
         m = folium.Map(
             location=[42.7070, -71.1631],
             zoom_start=13,
-            tiles="CartoDB Voyager",
+            tiles="OpenStreetMap",
         )
 
         lawrence_geojson = fetch_lawrence_boundary()
@@ -389,9 +378,10 @@ with tab_map:
             ).add_to(m)
 
         for _, row in map_data.iterrows():
-            cats = row["CatList"]
-            pin_color = CAT_COLORS.get(cats[0] if cats else "Unknown", "#94a3b8")
-            svc_tags = row["ServiceArea"] or "Not specified"
+            # single pin colour — the category legend is gone from the UI, so
+            # per-category colours would have nothing to decode them
+            pin_color = BRAND_MED
+            svc_tags = row["Services"] or "Not specified"
             org_type = row["OrgType"] or "Not specified"
             url = row["URL"]
             
@@ -407,12 +397,6 @@ with tab_map:
                 else '<span style="color:#94a3b8;font-size:12px;">No website listed</span>'
             )
 
-            cat_badges = " ".join(
-                f'<span style="background:{CAT_COLORS.get(c, "#94a3b8")};color:white;'
-                f'border-radius:12px;padding:2px 9px;font-size:10px;font-weight:700;">{c}</span>'
-                for c in cats
-            )
-
             popup_html = (
                 f'<div style="font-family:Inter,sans-serif;width:310px;'
                 f'border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.12);">'
@@ -421,7 +405,6 @@ with tab_map:
                 f'line-height:1.3;">{row["Name"]}</div>'
                 f"</div>"
                 f'<div style="padding:12px 16px;background:white;">'
-                f'<div style="margin-bottom:8px;">{cat_badges}</div>'
                 f'<table style="width:100%;border-collapse:collapse;font-size:12px;'
                 f'color:{TEXT_DARK};">'
                 f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
@@ -448,7 +431,6 @@ with tab_map:
             tooltip_html = (
                 f'<div style="font-family:Inter,sans-serif;font-size:13px;'
                 f'font-weight:700;color:{BRAND_DARK};max-width:200px;">{row["Name"]}</div>'
-                f'<div style="font-size:11px;color:{TEXT_MID};">{cats[0] if cats else ""}</div>'
             )
 
             pin_svg = (
@@ -473,7 +455,7 @@ with tab_map:
 
         st_folium(m, use_container_width=True, height=620, returned_objects=[])
         st.caption(
-            f"{len(map_data)} organizations plotted · Markers colored by category · Click for details"
+            f"{len(map_data)} organizations plotted · Click a marker for details"
         )
 
 
@@ -508,8 +490,8 @@ with tab_dir:
             )
 
         dir_df = (
-            filtered[["Name", "City", "OrgType", "ServiceArea", "Services", "URL", "ImpactReport", "StrategicPlan"]]
-            .rename(columns={"OrgType": "Org Type", "ServiceArea": "Service Area", "ImpactReport" : "Impact Report", "StrategicPlan" : "Strategic Plan"})
+            filtered[["Name", "City", "OrgType", "Services", "URL", "ImpactReport", "StrategicPlan"]]
+            .rename(columns={"OrgType": "Org Type", "ImpactReport": "Impact Report", "StrategicPlan": "Strategic Plan"})
             .copy()
         )
         for c in ("Impact Report", "Strategic Plan"):
@@ -547,8 +529,7 @@ with tab_detail:
             st.warning("Organization not found — please try another selection.")
         else:
             row = matches.iloc[0]
-            cats = row["CatList"]
-            header_color = CAT_COLORS.get(cats[0] if cats else "Unknown", "#94a3b8")
+            header_color = BRAND_MED
 
             st.markdown(
                 f'<div style="background:{BG_WHITE};border-radius:12px;'
@@ -597,12 +578,6 @@ with tab_detail:
                 st.markdown(_link_cell(row.get("StrategicPlan", "")), unsafe_allow_html=True) 
 
             with c2:
-                section_label("🗂️", "Categories")
-                st.markdown(
-                    " ".join(cat_badge(c) for c in cats) or "Not specified",
-                    unsafe_allow_html=True,
-                )
-
                 section_label("🛠️", "Services")
                 detail_svcs = _smart_split(row.get("Services", ""))
                 if detail_svcs:
@@ -620,7 +595,7 @@ with tab_detail:
                 mini = folium.Map(
                     location=[row["Latitude"], row["Longitude"]],
                     zoom_start=15,
-                    tiles="CartoDB positron",
+                    tiles="OpenStreetMap",
                 )
                 folium.Marker(
                     location=[row["Latitude"], row["Longitude"]],
