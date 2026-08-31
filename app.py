@@ -33,6 +33,8 @@ BG_LIGHT = "#f8fafc"
 BG_SIDEBAR = "#f0f4f8"
 BORDER = "#e2e8f0"
 
+GEMINI_GEM_URL = "https://gemini.google.com/gem/ca6a37604b8a?usp=sharing"
+
 # Category palette — aligned with CATEGORY_MAP below
 CAT_COLORS = {
     "Education": "#e63946",
@@ -337,7 +339,16 @@ with hdr_l:
         unsafe_allow_html=True,
     )
 with hdr_r:
-    pass
+    st.markdown(
+        f'<div style="display:flex;justify-content:flex-end;">'
+        f'<a href="{GEMINI_GEM_URL}" target="_blank" rel="noopener noreferrer" '
+        f'style="display:inline-flex;align-items:center;gap:8px;'
+        f'background:{BRAND_MED};color:white;'
+        f'padding:11px 18px;border-radius:8px;font-size:14px;font-weight:700;'
+        f'text-decoration:none;">'
+        f'Community Resource Navigator ↗</a></div>',
+        unsafe_allow_html=True,
+    )
 
 st.divider()
 
