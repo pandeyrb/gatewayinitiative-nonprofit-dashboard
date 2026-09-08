@@ -95,8 +95,17 @@ CATEGORY_MAP = {
 
 
 def _smart_split(s: str) -> list[str]:
-    """Split on commas that are NOT inside parentheses."""
-    return [p.strip() for p in re.split(r",(?![^(]*\))", s) if p.strip()] if s else []
+    """Split on commas that are NOT inside parentheses.
+
+    Source strings are written as prose with an Oxford comma ("X, Y, and Z"),
+    so splitting on every comma strands the "and" from the last item on its
+    own fragment ("and Z"). Strip it back off.
+    """
+    if not s:
+        return []
+    parts = [p.strip() for p in re.split(r",(?![^(]*\))", s) if p.strip()]
+    parts = [re.sub(r"^and\s+", "", p, flags=re.IGNORECASE) for p in parts]
+    return [p for p in parts if p]
 
 
 def _get_categories(svc_str: str) -> list[str]:
