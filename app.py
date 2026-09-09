@@ -15,9 +15,100 @@ from streamlit_folium import st_folium
 
 from search_utils import matches as _search_matches
 
+# CartoDB's free basemap tiles (Positron, Voyager, etc.) now require an API
+# key, and folium's "CartoDB positron" alias points at that gated endpoint.
+# Esri's Light Gray Canvas gives a comparable clean/minimal look with no key.
+_POSITRON_TILES = (
+    "https://server.arcgisonline.com/ArcGIS/rest/services/"
+    "Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+)
+_POSITRON_ATTR = "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ"
+
+# A few more no-API-key Esri basemaps, offered as switchable layers on the
+# main map so community members can compare options live during a
+# presentation (click the layer icon, top-right of the map).
+_STREETS_TILES = (
+    "https://server.arcgisonline.com/ArcGIS/rest/services/"
+    "World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+)
+_STREETS_ATTR = "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap"
+
+_IMAGERY_TILES = (
+    "https://server.arcgisonline.com/ArcGIS/rest/services/"
+    "World_Imagery/MapServer/tile/{z}/{y}/{x}"
+)
+_IMAGERY_ATTR = "Tiles &copy; Esri &mdash; Esri, Maxar, Earthstar Geographics"
+
+_TOPO_TILES = (
+    "https://server.arcgisonline.com/ArcGIS/rest/services/"
+    "World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+)
+_TOPO_ATTR = "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, FAO, NOAA, USGS"
+
+
+def _add_basemap(m: folium.Map) -> None:
+    """Add the Esri Light Gray basemap, capped at its native tile zoom.
+
+    This layer has no cached tiles past zoom 16 in our service area — the
+    server responds 200 with a small "Map data not yet available" image
+    instead of 404, so Leaflet has no way to know to stop. max_native_zoom
+    keeps tile requests at 16 and upscales those tiles for deeper zooms
+    instead of requesting the placeholder.
+    """
+    folium.TileLayer(
+        tiles=_POSITRON_TILES,
+        attr=_POSITRON_ATTR,
+        max_native_zoom=16,
+        max_zoom=19,
+    ).add_to(m)
+
+
+def _add_basemap_layers(m: folium.Map) -> None:
+    """Add several switchable basemaps plus a layer-picker control.
+
+    Used on the main map only, so community members can toggle between
+    options during a presentation and give feedback on which they prefer.
+    OpenStreetMap stays the default (`show=True`); the rest are opt-in.
+    """
+    folium.TileLayer(
+        tiles="OpenStreetMap",
+        name=_("basemap_osm"),
+        show=True,
+    ).add_to(m)
+    folium.TileLayer(
+        tiles=_POSITRON_TILES,
+        attr=_POSITRON_ATTR,
+        name=_("basemap_light_gray"),
+        max_native_zoom=16,
+        max_zoom=19,
+        show=False,
+    ).add_to(m)
+    folium.TileLayer(
+        tiles=_STREETS_TILES,
+        attr=_STREETS_ATTR,
+        name=_("basemap_streets"),
+        max_zoom=19,
+        show=False,
+    ).add_to(m)
+    folium.TileLayer(
+        tiles=_IMAGERY_TILES,
+        attr=_IMAGERY_ATTR,
+        name=_("basemap_satellite"),
+        max_zoom=19,
+        show=False,
+    ).add_to(m)
+    folium.TileLayer(
+        tiles=_TOPO_TILES,
+        attr=_TOPO_ATTR,
+        name=_("basemap_topo"),
+        max_zoom=19,
+        show=False,
+    ).add_to(m)
+
+
 # ── page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="GWI Nonprofit Partner Explorer",
+    page_title="Lawrence Community Resource Finder",
     page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -35,63 +126,157 @@ BORDER = "#e2e8f0"
 
 GEMINI_GEM_URL = "https://gemini.google.com/gem/ca6a37604b8a?usp=sharing"
 
-# Category palette — aligned with CATEGORY_MAP below
-CAT_COLORS = {
-    "Education": "#e63946",
-    "Youth Development": "#f4a261",
-    "Economic Mobility": "#2a9d8f",
-    "Family & Basic Needs": "#e9c46a",
-    "Health & Wellness": "#457b9d",
-    "Justice, Legal & Immigration": "#6a0572",
-    "Community & Civic Life": "#2d6a4f",
-    "Other": "#94a3b8",
-    "Unknown": "#cbd5e1",
+# ── i18n ──────────────────────────────────────────────────────────────────────
+T = {
+    "en": {
+        "filters_heading": "🔍 Filters",
+        "orgs_total": "{n} organizations total",
+        "search_label": "Search",
+        "search_placeholder": "Name, city, or service…",
+        "services_label": "Services",
+        "services_placeholder": "Type to search services…",
+        "orgtype_label": "Organization Type",
+        "orgtype_all": "All",
+        "reset_button": "↺  Reset all filters",
+        "page_heading": "Lawrence Community Resource Finder",
+        "showing_all": "Showing all {n} organizations",
+        "showing_filtered": "Showing {n} of {total} organizations",
+        "nav_cta": "Community Resource Assistant",
+        "tab_map": "🗺️  Map",
+        "tab_directory": "📋  Directory",
+        "tab_org_detail": "🔎  Organization Detail",
+        "no_results": "No organizations match the current filters.  \nTry adjusting the filters or click **↺ Reset** in the sidebar.",
+        "no_coords": "Matching organizations have no coordinates to plot.",
+        "map_caption": "{n} organizations plotted · Click a marker for details · use the layers icon (top-right of the map) to try different basemaps",
+        "basemap_light_gray": "Light Gray",
+        "basemap_streets": "Streets",
+        "basemap_satellite": "Satellite",
+        "basemap_topo": "Topographic",
+        "basemap_osm": "OpenStreetMap",
+        "boundary_layer_name": "Lawrence, MA boundary",
+        "popup_address": "Address",
+        "popup_phone": "Phone",
+        "popup_hours": "Hours",
+        "popup_type": "Type",
+        "popup_services": "Services",
+        "popup_impact": "Impact Report",
+        "popup_strategic": "Strategic Plan",
+        "view_link": "View",
+        "not_available_short": "N/A",
+        "visit_website": "🔗 Visit Website",
+        "get_directions": "📍 Get Directions",
+        "no_website_listed": "No website listed",
+        "download_button": "⬇️  Download {n} results as CSV",
+        "col_name": "Name",
+        "col_city": "City",
+        "col_orgtype": "Org Type",
+        "col_servicearea": "Service Area",
+        "col_services": "Services",
+        "link_open": "🔗 Open",
+        "impact_open": "📊 Open",
+        "strategic_open": "🧭 Open",
+        "select_org": "Select an organization",
+        "org_not_found": "Organization not found — please try another selection.",
+        "sec_location": "Location",
+        "sec_orgtype": "Organization Type",
+        "sec_phone": "Phone",
+        "sec_hours": "Hours",
+        "sec_website": "Website",
+        "sec_impact": "Impact Report",
+        "sec_strategic": "Strategic Plan",
+        "sec_services": "Services",
+        "sec_map": "Location on Map",
+        "not_available": "Not available",
+        "not_specified": "Not specified",
+        "not_listed": "Not listed",
+        "no_map_coords": "No map coordinates available for this organization.",
+    },
+    "es": {
+        "filters_heading": "🔍 Filtros",
+        "orgs_total": "{n} organizaciones en total",
+        "search_label": "Buscar",
+        "search_placeholder": "Nombre, ciudad o servicio…",
+        "services_label": "Servicios",
+        "services_placeholder": "Escriba para buscar servicios…",
+        "orgtype_label": "Tipo de Organización",
+        "orgtype_all": "Todos",
+        "reset_button": "↺  Restablecer filtros",
+        "page_heading": "Buscador de Recursos Comunitarios de Lawrence",
+        "showing_all": "Mostrando las {n} organizaciones",
+        "showing_filtered": "Mostrando {n} de {total} organizaciones",
+        "nav_cta": "Asistente de Recursos Comunitarios",
+        "tab_map": "🗺️  Mapa",
+        "tab_directory": "📋  Directorio",
+        "tab_org_detail": "🔎  Detalle de la Organización",
+        "no_results": "Ninguna organización coincide con los filtros actuales.  \nAjuste los filtros o presione **↺ Restablecer** en la barra lateral.",
+        "no_coords": "Las organizaciones encontradas no tienen coordenadas para mostrar en el mapa.",
+        "map_caption": "{n} organizaciones en el mapa · Haga clic en un marcador para ver detalles · use el ícono de capas (arriba a la derecha del mapa) para probar diferentes mapas base",
+        "basemap_light_gray": "Gris Claro",
+        "basemap_streets": "Calles",
+        "basemap_satellite": "Satélite",
+        "basemap_topo": "Topográfico",
+        "basemap_osm": "OpenStreetMap",
+        "boundary_layer_name": "Límite de Lawrence, MA",
+        "popup_address": "Dirección",
+        "popup_phone": "Teléfono",
+        "popup_hours": "Horario",
+        "popup_type": "Tipo",
+        "popup_services": "Servicios",
+        "popup_impact": "Informe de Impacto",
+        "popup_strategic": "Plan Estratégico",
+        "view_link": "Ver",
+        "not_available_short": "N/D",
+        "visit_website": "🔗 Visitar Sitio Web",
+        "get_directions": "📍 Cómo Llegar",
+        "no_website_listed": "Sin sitio web registrado",
+        "download_button": "⬇️  Descargar {n} resultados en CSV",
+        "col_name": "Nombre",
+        "col_city": "Ciudad",
+        "col_orgtype": "Tipo de Org.",
+        "col_servicearea": "Área de Servicio",
+        "col_services": "Servicios",
+        "link_open": "🔗 Abrir",
+        "impact_open": "📊 Abrir",
+        "strategic_open": "🧭 Abrir",
+        "select_org": "Seleccione una organización",
+        "org_not_found": "Organización no encontrada — intente otra selección.",
+        "sec_location": "Ubicación",
+        "sec_orgtype": "Tipo de Organización",
+        "sec_phone": "Teléfono",
+        "sec_hours": "Horario",
+        "sec_website": "Sitio Web",
+        "sec_impact": "Informe de Impacto",
+        "sec_strategic": "Plan Estratégico",
+        "sec_services": "Servicios",
+        "sec_map": "Ubicación en el Mapa",
+        "not_available": "No disponible",
+        "not_specified": "No especificado",
+        "not_listed": "No disponible",
+        "no_map_coords": "No hay coordenadas de mapa disponibles para esta organización.",
+    },
 }
 
-# Mapping from v4 ServiceArea values → broad categories
-CATEGORY_MAP = {
-    "Education": [
-        "Education",
-        "Adult education",
-        "Adult Education",
-        "Literacy",
-        "Youth Education",
-    ],
-    "Youth Development": [
-        "Youth Development",
-        "Youth Education",
-    ],
-    "Economic Mobility": [
-        "Economic Mobility",
-        "Non-Profit Support",
-    ],
-    "Family & Basic Needs": [
-        "Family Services",
-        "Food Insecurity",
-        "Housing Insecurity",
-        "Homelessness",
-        "Human Services",
-        "Other: Basic needs",
-        "Other: Clothing/Personal Growth",
-    ],
-    "Health & Wellness": [
-        "Healthcare",
-        "Mental and Behavioral Health",
-        "Mental Health",
-        "Disability Support",
-        "Elder Services",
-        "Early Intervention Services",
-    ],
-    "Justice, Legal & Immigration": [
-        "Legal services",
-        "Legal Services",
-    ],
-    "Community & Civic Life": [
-        "Environmental Justice",
-        "Faith Institution",
-        "Faith-based Services",
-    ],
+ORG_TYPE_ES = {
+    "Non-profit organization": "Organización sin fines de lucro",
+    "Faith-based Organization": "Organización religiosa",
+    "Healthcare System": "Sistema de salud",
+    "Higher Education": "Educación superior",
+    "K-12 School": "Escuela K-12",
+    "Municipal Agency": "Agencia municipal",
 }
+
+if "lang" not in st.session_state:
+    st.session_state["lang"] = "en"
+
+
+def _(key: str) -> str:
+    return T[st.session_state["lang"]][key]
+
+
+def _org_type_label(org_type: str) -> str:
+    if st.session_state["lang"] == "es":
+        return ORG_TYPE_ES.get(org_type, org_type)
+    return org_type
 
 
 def _smart_split(s: str) -> list[str]:
@@ -106,20 +291,6 @@ def _smart_split(s: str) -> list[str]:
     parts = [p.strip() for p in re.split(r",(?![^(]*\))", s) if p.strip()]
     parts = [re.sub(r"^and\s+", "", p, flags=re.IGNORECASE) for p in parts]
     return [p for p in parts if p]
-
-
-def _get_categories(svc_str: str) -> list[str]:
-    """Return all matching broad categories for a service area string."""
-    svcs = _smart_split(svc_str)
-    matched = set()
-    for cat, keywords in CATEGORY_MAP.items():
-        for svc in svcs:
-            for kw in keywords:
-                if kw.lower() in svc.lower():
-                    matched.add(cat)
-    if not matched:
-        return ["Other"] if svcs else ["Unknown"]
-    return sorted(matched)
 
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
@@ -173,6 +344,8 @@ st.markdown(
 
   [data-testid="stTabs"] button[role="tab"] {{
     font-size:16px !important; font-weight:600 !important; }}
+
+  div[data-testid="stRadio"] {{ margin-top:18px; }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -218,20 +391,21 @@ def load_data(path: str) -> pd.DataFrame:
     df["Longitude"] = pd.to_numeric(df["Longitude"], errors="coerce")
 
     df["SvcList"] = df["ServiceArea"].apply(_smart_split)
-    df["CatList"] = df["ServiceArea"].apply(_get_categories)
     if "Services" not in df.columns:
         df["Services"] = ""
     df["SvcTagList"] = df["Services"].apply(_smart_split)
 
-    df = df.rename(columns={"Impact Report": "ImpactReport",
-                            "Strategic Plan": "StrategicPlan"})
+    df = df.rename(
+        columns={"Impact Report": "ImpactReport", "Strategic Plan": "StrategicPlan"}
+    )
 
-    for col in ("ImpactReport", "StrategicPlan"):
+    for col in ("ImpactReport", "StrategicPlan", "Phone", "Hours"):
         if col not in df.columns:
             df[col] = ""
 
     return df
-            
+
+
 df = load_data(CSV_PATH)
 
 if df.empty:
@@ -242,55 +416,81 @@ if df.empty:
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
-def _link_cell(val: str) -> str: #New Change for v5
+def _link_cell(val: str) -> str:  # New Change for v5
     if val and str(val).strip():
         v = str(val).strip()
         href = v if v.startswith("http") else f"https://{v}"
         return (
             f'<a href="{href}" target="_blank" '
-            f'style="color:{BRAND_MED};text-decoration:underline;">View</a>'
+            f'style="color:{BRAND_MED};text-decoration:underline;">{_("view_link")}</a>'
         )
-    return '<span style="color:#94a3b8;">N/A</span>'
+    return f'<span style="color:#94a3b8;">{_("not_available_short")}</span>'
 
-_NO_RESULTS = (
-    "No organizations match the current filters.  \n"
-    "Try adjusting the filters or click **↺ Reset** in the sidebar."
-)
+
+def _directions_url(lat, lng) -> str:
+    return f"https://www.google.com/maps/dir/?api=1&destination={lat},{lng}"
+
+
+def _tel_link(phone: str) -> str:
+    """Render a phone number as a tap-to-call link (works on mobile)."""
+    digits = re.sub(r"[^\d+]", "", str(phone))
+    return (
+        f'<a href="tel:{digits}" '
+        f'style="color:{BRAND_MED};text-decoration:none;font-weight:600;">{phone}</a>'
+    )
+
+
+def _hours_lines(hours: str) -> list[str]:
+    """Split an Hours string into its per-line segments.
+
+    Hours are authored semicolon-separated ("Mon 9 AM–5 PM; Sun closed") so
+    each segment can render on its own line instead of one long run-on.
+    """
+    return [seg.strip() for seg in str(hours).split(";") if seg.strip()]
+
 
 # ── sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown(
         f"<p style='font-size:20px;font-weight:800;color:{BRAND_DARK};"
-        "margin:0 0 4px;'>🔍 Filters</p>",
+        f"margin:0 0 4px;'>{_('filters_heading')}</p>",
         unsafe_allow_html=True,
     )
     st.markdown(
         f"<p style='font-size:16px;color:{TEXT_MID};margin:0 0 12px;'>"
-        f"{len(df)} organizations total</p>",
+        f"{_('orgs_total').format(n=len(df))}</p>",
         unsafe_allow_html=True,
     )
     st.divider()
 
-    search = st.text_input("Search", placeholder="Name, city, or service…", key="search")
+    search = st.text_input(
+        _("search_label"), placeholder=_("search_placeholder"), key="search"
+    )
 
     all_services = sorted({s for lst in df["SvcTagList"] for s in lst})
     sel_svcs = st.multiselect(
-        "Services",
+        _("services_label"),
         all_services,
         key="sel_svcs",
-        placeholder="Type to search services…",
+        placeholder=_("services_placeholder"),
     )
 
     all_org_types = sorted({t for t in df["OrgType"] if t})
-    sel_org_type = st.selectbox("Organization Type", ["All"] + all_org_types, key="sel_org_type")
+    org_type_labels = [_("orgtype_all")] + [_org_type_label(t) for t in all_org_types]
+    org_type_label_to_raw = {_("orgtype_all"): "All"}
+    org_type_label_to_raw.update({_org_type_label(t): t for t in all_org_types})
+    sel_org_type_label = st.selectbox(
+        _("orgtype_label"), org_type_labels, key="sel_org_type_label"
+    )
+    sel_org_type = org_type_label_to_raw[sel_org_type_label]
 
     def _reset_filters():
         st.session_state["search"] = ""
         st.session_state["sel_svcs"] = []
-        st.session_state["sel_org_type"] = "All"
+        st.session_state["sel_org_type_label"] = _("orgtype_all")
 
     st.divider()
-    st.button("↺  Reset all filters", use_container_width=True, on_click=_reset_filters)
+    st.button(_("reset_button"), use_container_width=True, on_click=_reset_filters)
 
 
 # ── apply filters ─────────────────────────────────────────────────────────────
@@ -326,22 +526,37 @@ if search:
 if sel_svcs:
     active_filters.extend(sel_svcs)
 if sel_org_type != "All":
-    active_filters.append(sel_org_type)
+    active_filters.append(_org_type_label(sel_org_type))
 
 
 # ── page header ───────────────────────────────────────────────────────────────
-st.markdown(
-    f"<h1 style='color:{BRAND_DARK};font-size:28px;font-weight:800;margin:0 0 6px;'>"
-    "GWI Nonprofit Partner Explorer</h1>",
-    unsafe_allow_html=True,
-)
+title_col, lang_col = st.columns([5, 2])
+with title_col:
+    st.markdown(
+        f"<h1 style='color:{BRAND_DARK};font-size:28px;font-weight:800;margin:0 0 6px;'>"
+        f"{_('page_heading')}</h1>",
+        unsafe_allow_html=True,
+    )
+with lang_col:
+    lang_choice = st.radio(
+        "Language / Idioma",
+        options=["en", "es"],
+        format_func=lambda k: "English" if k == "en" else "Español",
+        horizontal=True,
+        index=0 if st.session_state["lang"] == "en" else 1,
+        label_visibility="collapsed",
+        key="lang_radio",
+    )
+    if lang_choice != st.session_state["lang"]:
+        st.session_state["lang"] = lang_choice
+        st.rerun()
 
 hdr_l, hdr_r = st.columns([5, 4])
 with hdr_l:
     txt = (
-        f"Showing all {n_total} organizations"
+        _("showing_all").format(n=n_total)
         if n_filtered == n_total
-        else f"Showing {n_filtered} of {n_total} organizations"
+        else _("showing_filtered").format(n=n_filtered, total=n_total)
     )
     st.markdown(
         f"<p style='color:{TEXT_MID};font-size:18px;margin:0;'>{txt}</p>",
@@ -352,10 +567,10 @@ with hdr_r:
         f'<div style="display:flex;justify-content:flex-end;">'
         f'<a href="{GEMINI_GEM_URL}" target="_blank" rel="noopener noreferrer" '
         f'style="display:inline-flex;align-items:center;gap:8px;'
-        f'background:{BRAND_MED};color:white;'
-        f'padding:11px 18px;border-radius:8px;font-size:14px;font-weight:700;'
+        f"background:{BRAND_MED};color:white;"
+        f"padding:11px 18px;border-radius:8px;font-size:14px;font-weight:700;"
         f'text-decoration:none;">'
-        f'Community Resource Navigator ↗</a></div>',
+        f"{_('nav_cta')} ↗</a></div>",
         unsafe_allow_html=True,
     )
 
@@ -363,7 +578,7 @@ st.divider()
 
 # ── tabs ──────────────────────────────────────────────────────────────────────
 tab_map, tab_dir, tab_detail = st.tabs(
-    ["🗺️  Map", "📋  Directory", "🔎  Organization Detail"]
+    [_("tab_map"), _("tab_directory"), _("tab_org_detail")]
 )
 
 
@@ -374,21 +589,23 @@ with tab_map:
     map_data = filtered.dropna(subset=["Latitude", "Longitude"])
 
     if filtered.empty:
-        st.warning(_NO_RESULTS)
+        st.warning(_("no_results"))
     elif map_data.empty:
-        st.info("Matching organizations have no coordinates to plot.")
+        st.info(_("no_coords"))
     else:
         m = folium.Map(
             location=[42.7070, -71.1631],
             zoom_start=13,
-            tiles="OpenStreetMap",
+            tiles=None,
         )
+        _add_basemap_layers(m)
 
         lawrence_geojson = fetch_lawrence_boundary()
         if lawrence_geojson:
             folium.GeoJson(
                 lawrence_geojson,
-                style_function=lambda _: {
+                name=_("boundary_layer_name"),
+                style_function=lambda _f: {
                     "color": BRAND_DARK,
                     "weight": 3,
                     "fillColor": BRAND_DARK,
@@ -397,25 +614,56 @@ with tab_map:
                 },
             ).add_to(m)
 
-        for _, row in map_data.iterrows():
+        for _idx, row in map_data.iterrows():
             # single pin colour — the category legend is gone from the UI, so
             # per-category colours would have nothing to decode them
             pin_color = BRAND_MED
-            svc_tags = row["Services"] or "Not specified"
-            org_type = row["OrgType"] or "Not specified"
+            svc_tags = row["Services"] or _("not_specified")
+            org_type = _org_type_label(row["OrgType"]) or _("not_specified")
             url = row["URL"]
-            
+
             impact = row.get("ImpactReport", "")
             strategic = row.get("StrategicPlan", "")
 
-            url_html = (
-                f'<a href="{url}" target="_blank" '
-                f'style="display:inline-block;margin-top:10px;padding:6px 14px;'
-                f"background:{BRAND_DARK};color:white;border-radius:6px;"
-                f'font-size:12px;font-weight:600;text-decoration:none;">🔗 Visit Website</a>'
-                if url
-                else '<span style="color:#94a3b8;font-size:12px;">No website listed</span>'
+            # Phone/hours are only filled in for a handful of orgs so far —
+            # skip the row entirely rather than showing an empty field.
+            phone = str(row.get("Phone", "")).strip()
+            hours = str(row.get("Hours", "")).strip()
+            phone_row = (
+                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_phone")}</td>'
+                f"<td>{_tel_link(phone)}</td></tr>"
+                if phone
+                else ""
             )
+            hours_row = (
+                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f"font-weight:700;text-transform:uppercase;white-space:nowrap;"
+                f'vertical-align:top;">{_("popup_hours")}</td>'
+                f'<td style="color:{TEXT_MID};">{"<br>".join(_hours_lines(hours))}</td></tr>'
+                if hours
+                else ""
+            )
+
+            directions_url = _directions_url(row["Latitude"], row["Longitude"])
+            action_html = (
+                f'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;'
+                f'margin-top:10px;">'
+                f'<a href="{directions_url}" target="_blank" '
+                f'style="display:inline-block;padding:6px 14px;'
+                f"background:{BRAND_DARK};color:white;border-radius:6px;"
+                f'font-size:12px;font-weight:600;text-decoration:none;">{_("get_directions")}</a>'
+            )
+            if url:
+                action_html += (
+                    f'<a href="{url}" target="_blank" '
+                    f'style="display:inline-block;padding:6px 14px;'
+                    f"background:{BRAND_MED};color:white;border-radius:6px;"
+                    f'font-size:12px;font-weight:600;text-decoration:none;">{_("visit_website")}</a>'
+                )
+            else:
+                action_html += f'<span style="color:#94a3b8;font-size:12px;">{_("no_website_listed")}</span>'
+            action_html += "</div>"
 
             popup_html = (
                 f'<div style="font-family:Inter,sans-serif;width:310px;'
@@ -428,23 +676,25 @@ with tab_map:
                 f'<table style="width:100%;border-collapse:collapse;font-size:12px;'
                 f'color:{TEXT_DARK};">'
                 f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
-                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">Address</td>'
+                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_address")}</td>'
                 f"<td>{row['Address']}, {row['City']}, {row['State']}</td></tr>"
+                f"{phone_row}"
+                f"{hours_row}"
                 f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
-                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">Type</td>'
+                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_type")}</td>'
                 f"<td>{org_type}</td></tr>"
                 f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
                 f"font-weight:700;text-transform:uppercase;white-space:nowrap;"
-                f'vertical-align:top;">Services</td>'
-                f'<td style="color:{TEXT_MID};">{svc_tags}</td></tr>' ##New Change for v5
+                f'vertical-align:top;">{_("popup_services")}</td>'
+                f'<td style="color:{TEXT_MID};">{svc_tags}</td></tr>'
                 f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
-                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">Impact Report</td>'
+                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_impact")}</td>'
                 f"<td>{_link_cell(impact)}</td></tr>"
                 f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
-                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">Strategic Plan</td>'
+                f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_strategic")}</td>'
                 f"<td>{_link_cell(strategic)}</td></tr>"
-                f"</table>" ##New Change for v5
-                f"{url_html}"
+                f"</table>"
+                f"{action_html}"
                 f"</div></div>"
             )
 
@@ -473,10 +723,10 @@ with tab_map:
                 ),
             ).add_to(m)
 
+        folium.LayerControl(collapsed=False).add_to(m)
+
         st_folium(m, use_container_width=True, height=620, returned_objects=[])
-        st.caption(
-            f"{len(map_data)} organizations plotted · Click a marker for details"
-        )
+        st.caption(_("map_caption").format(n=len(map_data)))
 
 
 # ══════════════════════════════════════════════════════════
@@ -484,9 +734,9 @@ with tab_map:
 # ══════════════════════════════════════════════════════════
 with tab_dir:
     if filtered.empty:
-        st.warning(_NO_RESULTS)
+        st.warning(_("no_results"))
     else:
-        dl_col, _ = st.columns([2, 5])
+        dl_col, _dl_spacer = st.columns([2, 5])
         with dl_col:
             export_df = filtered[
                 [
@@ -495,38 +745,78 @@ with tab_dir:
                     "City",
                     "State",
                     "Zip",
+                    "Phone",
+                    "Hours",
                     "URL",
                     "OrgType",
                     "ServiceArea",
                     "ImpactReport",
-                    "StrategicPlan"
+                    "StrategicPlan",
                 ]
-            ].rename(columns={"OrgType": "Org Type", "ServiceArea": "Service Area"})
+            ].rename(
+                columns={
+                    "Name": _("col_name"),
+                    "City": _("col_city"),
+                    "Phone": _("sec_phone"),
+                    "Hours": _("sec_hours"),
+                    "OrgType": _("col_orgtype"),
+                    "ServiceArea": _("col_servicearea"),
+                }
+            )
             st.download_button(
-                f"⬇️  Download {n_filtered} results as CSV",
+                _("download_button").format(n=n_filtered),
                 data=export_df.to_csv(index=False).encode("utf-8"),
                 file_name="gwi_nonprofits_filtered.csv",
                 mime="text/csv",
             )
 
         dir_df = (
-            filtered[["Name", "City", "OrgType", "Services", "URL", "ImpactReport", "StrategicPlan"]]
-            .rename(columns={"OrgType": "Org Type", "ImpactReport": "Impact Report", "StrategicPlan": "Strategic Plan"})
+            filtered[
+                [
+                    "Name",
+                    "City",
+                    "OrgType",
+                    "Services",
+                    "URL",
+                    "ImpactReport",
+                    "StrategicPlan",
+                ]
+            ]
+            .rename(
+                columns={
+                    "Name": _("col_name"),
+                    "City": _("col_city"),
+                    "OrgType": _("col_orgtype"),
+                    "Services": _("col_services"),
+                    "ImpactReport": _("sec_impact"),
+                    "StrategicPlan": _("sec_strategic"),
+                }
+            )
             .copy()
         )
-        for c in ("Impact Report", "Strategic Plan"):
+        dir_df[_("col_orgtype")] = dir_df[_("col_orgtype")].apply(_org_type_label)
+        for c in (_("sec_impact"), _("sec_strategic")):
             dir_df[c] = dir_df[c].apply(
-                lambda v: "" if not str(v).strip()
-                else (str(v) if str(v).startswith("http") else f"https://{v}")
+                lambda v: (
+                    ""
+                    if not str(v).strip()
+                    else (str(v) if str(v).startswith("http") else f"https://{v}")
+                )
             )
         st.dataframe(
             dir_df,
             use_container_width=True,
             height=520,
             column_config={
-                "URL": st.column_config.LinkColumn("Website", display_text="🔗 Open"),
-                "Impact Report": st.column_config.LinkColumn("Impact Report", display_text="📊 Open"),
-                "Strategic Plan": st.column_config.LinkColumn("Strategic Plan", display_text="🧭 Open"),
+                "URL": st.column_config.LinkColumn(
+                    _("sec_website"), display_text=_("link_open")
+                ),
+                _("sec_impact"): st.column_config.LinkColumn(
+                    _("sec_impact"), display_text=_("impact_open")
+                ),
+                _("sec_strategic"): st.column_config.LinkColumn(
+                    _("sec_strategic"), display_text=_("strategic_open")
+                ),
             },
             hide_index=True,
         )
@@ -537,16 +827,16 @@ with tab_dir:
 # ══════════════════════════════════════════════════════════
 with tab_detail:
     if filtered.empty:
-        st.warning(_NO_RESULTS)
+        st.warning(_("no_results"))
     else:
         selected_name = st.selectbox(
-            "Select an organization",
+            _("select_org"),
             sorted(filtered["Name"].tolist()),
             key="detail_select",
         )
         matches = filtered[filtered["Name"] == selected_name]
         if matches.empty:
-            st.warning("Organization not found — please try another selection.")
+            st.warning(_("org_not_found"))
         else:
             row = matches.iloc[0]
             header_color = BRAND_MED
@@ -572,14 +862,30 @@ with tab_detail:
             c1, c2 = st.columns(2)
 
             with c1:
-                section_label("📍", "Location")
+                section_label("📍", _("sec_location"))
                 addr_parts = [row["Address"], row["City"], row["State"], row["Zip"]]
-                st.write(", ".join(p for p in addr_parts if p) or "Not available")
+                st.write(", ".join(p for p in addr_parts if p) or _("not_available"))
 
-                section_label("🏢", "Organization Type")
-                st.write(row["OrgType"] or "Not specified")
+                # Only collected for a handful of orgs so far — the section is
+                # hidden rather than shown empty for the rest.
+                detail_phone = str(row.get("Phone", "")).strip()
+                if detail_phone:
+                    section_label("📞", _("sec_phone"))
+                    st.markdown(_tel_link(detail_phone), unsafe_allow_html=True)
 
-                section_label("🌐", "Website")
+                detail_hours = _hours_lines(row.get("Hours", ""))
+                if detail_hours:
+                    section_label("🕒", _("sec_hours"))
+                    hours_html = "<br>".join(detail_hours)
+                    st.markdown(
+                        f"<div style='color:{TEXT_DARK};line-height:1.6;'>{hours_html}</div>",
+                        unsafe_allow_html=True,
+                    )
+
+                section_label("🏢", _("sec_orgtype"))
+                st.write(_org_type_label(row["OrgType"]) or _("not_specified"))
+
+                section_label("🌐", _("sec_website"))
                 url = row["URL"]
                 if url and url.startswith("http"):
                     st.markdown(f"[{url}]({url})")
@@ -587,18 +893,22 @@ with tab_detail:
                     st.markdown(f"[https://{url}](https://{url})")
                 else:
                     st.markdown(
-                        f"<span style='color:{TEXT_MID};'>Not listed</span>",
+                        f"<span style='color:{TEXT_MID};'>{_('not_listed')}</span>",
                         unsafe_allow_html=True,
                     )
-                    
-                section_label("📊", "Impact Report") ##New change for v5
-                st.markdown(_link_cell(row.get("ImpactReport", "")), unsafe_allow_html=True)
 
-                section_label("🧭", "Strategic Plan") ##New change for v5
-                st.markdown(_link_cell(row.get("StrategicPlan", "")), unsafe_allow_html=True) 
+                section_label("📊", _("sec_impact"))
+                st.markdown(
+                    _link_cell(row.get("ImpactReport", "")), unsafe_allow_html=True
+                )
+
+                section_label("🧭", _("sec_strategic"))
+                st.markdown(
+                    _link_cell(row.get("StrategicPlan", "")), unsafe_allow_html=True
+                )
 
             with c2:
-                section_label("🛠️", "Services")
+                section_label("🛠️", _("sec_services"))
                 detail_svcs = _smart_split(row.get("Services", ""))
                 if detail_svcs:
                     st.markdown(
@@ -608,15 +918,16 @@ with tab_detail:
                         unsafe_allow_html=True,
                     )
                 else:
-                    st.write("Not specified")
+                    st.write(_("not_specified"))
 
             if pd.notna(row["Latitude"]) and pd.notna(row["Longitude"]):
-                section_label("🗺️", "Location on Map")
+                section_label("🗺️", _("sec_map"))
                 mini = folium.Map(
                     location=[row["Latitude"], row["Longitude"]],
                     zoom_start=15,
-                    tiles="OpenStreetMap",
+                    tiles=None,
                 )
+                _add_basemap(mini)
                 folium.Marker(
                     location=[row["Latitude"], row["Longitude"]],
                     tooltip=row["Name"],
@@ -626,4 +937,4 @@ with tab_detail:
                     mini, use_container_width=True, height=300, returned_objects=[]
                 )
             else:
-                st.info("No map coordinates available for this organization.")
+                st.info(_("no_map_coords"))
