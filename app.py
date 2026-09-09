@@ -723,7 +723,7 @@ with tab_map:
                 ),
             ).add_to(m)
 
-        folium.LayerControl(collapsed=False).add_to(m)
+        folium.LayerControl(collapsed=True).add_to(m)
 
         st_folium(m, use_container_width=True, height=620, returned_objects=[])
         st.caption(_("map_caption").format(n=len(map_data)))

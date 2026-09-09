@@ -20,7 +20,10 @@ ALIAS_GROUPS = [
     {"esl", "esol", "english class", "english classes", "english language"},
     {"daycare", "day care", "childcare", "child care"},
     {"food pantry", "food bank", "pantry"},
-    {"shelter", "homeless shelter", "emergency shelter"},
+    {"homelessness", "homeless", "housing insecurity", "housing assistance",
+     "housing", "shelter", "homeless shelter", "emergency shelter", "eviction",
+     "rental assistance", "foreclosure prevention", "foreclosure",
+     "homeownership", "affordable housing"},
     {"ged", "high school equivalency", "hiset"},
     {"legal", "legal aid", "legal services", "lawyer", "attorney"},
     {"job", "jobs", "employment", "workforce", "career"},
@@ -93,6 +96,13 @@ def stem(word: str) -> str:
     return w
 
 
+# Below this length, raw substring matching false-positives inside unrelated
+# words (e.g. "bus" inside "business"). Whole-word stemmed matching (step 3
+# in matches(), below) still finds exact short-word matches like "bus" as
+# its own word — this only disables the partial-word fallback for short
+# queries, at the cost of live-typing results before the 4th character.
+_MIN_SUBSTRING_LEN = 4
+
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
@@ -115,12 +125,13 @@ def matches(query: str, haystack: str) -> bool:
     """
     True if `query` should match `haystack`.
 
-    Three ways to match, most permissive first — this is strictly a superset
-    of the old substring behaviour, so nothing that matched before stops
-    matching now:
-      1. raw substring (so partial words like "diap" still work)
-      2. an alias of the query appears as a substring
-      3. every stemmed query token appears in the stemmed haystack
+    Three ways to match, most permissive first:
+      1. raw substring, for queries at least _MIN_SUBSTRING_LEN long (so
+         partial words like "diap" still work, without short queries like
+         "bus" false-positiving inside "business")
+      2. an alias of the query appears as a substring (same length floor)
+      3. every stemmed query token appears in the stemmed haystack — this
+         one has no length floor, since it only matches whole words
     """
     if not query.strip():
         return True
@@ -128,7 +139,7 @@ def matches(query: str, haystack: str) -> bool:
     hay_low = str(haystack).lower()
 
     for variant in expand_query(query):
-        if variant in hay_low:
+        if len(variant) >= _MIN_SUBSTRING_LEN and variant in hay_low:
             return True
 
     hay_tokens = tokens(haystack)
