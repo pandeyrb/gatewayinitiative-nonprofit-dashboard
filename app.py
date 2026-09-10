@@ -313,6 +313,21 @@ st.markdown(
   section[data-testid="stSidebar"] [data-baseweb="select"] * {{
     color:{TEXT_DARK} !important; background:{BG_WHITE} !important; }}
 
+  /* Selected multiselect chips: the wildcard above painted dark text on the
+     dark primary-color chip, leaving it unreadable. Give chips a light fill
+     with dark text so the selection stands out against the white control. */
+  section[data-testid="stSidebar"] [data-baseweb="tag"],
+  section[data-testid="stSidebar"] [data-baseweb="tag"] * {{
+    background:#dbeafe !important; color:{BRAND_DARK} !important; }}
+  section[data-testid="stSidebar"] [data-baseweb="tag"] {{
+    border:1px solid #93c5fd !important; border-radius:6px !important;
+    font-weight:600 !important; }}
+  section[data-testid="stSidebar"] [data-baseweb="tag"] svg {{
+    fill:{BRAND_DARK} !important; }}
+  section[data-testid="stSidebar"] [data-baseweb="tag"] [role="presentation"]:hover,
+  section[data-testid="stSidebar"] [data-baseweb="tag"] span[role="button"]:hover {{
+    background:#bfdbfe !important; }}
+
   .block-container {{ padding-top:1.5rem; padding-bottom:2rem; max-width:1400px; }}
   h1,h2,h3,h4,h5,h6 {{ color:{BRAND_DARK} !important; }}
 
