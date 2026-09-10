@@ -124,6 +124,28 @@ BG_LIGHT = "#f8fafc"
 BG_SIDEBAR = "#f0f4f8"
 BORDER = "#e2e8f0"
 
+# Muted text. Replaces an earlier lighter grey that scored only 2.6:1 on white
+# and failed WCAG AA; this clears 4.5:1 wherever grey text still carries meaning.
+TEXT_MUTED = "#64748b"
+
+# System stack, no webfont. The previous stack named Inter but nothing ever
+# loaded it, so every user fell through to Segoe UI or Arial. Naming the native
+# faces gets SF on Apple and Roboto on Android with no request and no reflow.
+FONT_STACK = (
+    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, "
+    "'Helvetica Neue', Arial, sans-serif"
+)
+
+# Type scale, base 16. Six steps, each a perceptible jump — earlier code used
+# eleven sizes from 10 to 28, where neighbours like 13/14/15 read as drift
+# rather than hierarchy. 12 is the floor; nothing renders smaller.
+#   12 micro      badges, popup row labels
+#   14 supporting chips, captions, filter labels, buttons
+#   16 body       default text, tab labels, popup org name
+#   20 panel      sidebar heading
+#   24 section    org detail name
+#   30 page       h1
+
 GEMINI_GEM_URL = "https://gemini.google.com/gem/ca6a37604b8a?usp=sharing"
 
 # ── i18n ──────────────────────────────────────────────────────────────────────
@@ -298,14 +320,15 @@ st.markdown(
     f"""
 <style>
   html, body, [class*="css"] {{ color:{TEXT_DARK} !important;
-    font-family:"Inter","Segoe UI",Arial,sans-serif; }}
+    font-family:{FONT_STACK} !important;
+    font-size:16px; line-height:1.5; }}
   .stApp {{ background-color:{BG_WHITE}; }}
 
   section[data-testid="stSidebar"] {{ background-color:{BG_SIDEBAR} !important; }}
   section[data-testid="stSidebar"] * {{ color:{TEXT_DARK} !important; }}
   section[data-testid="stSidebar"] label {{
-    color:{TEXT_MID} !important; font-size:12px !important;
-    font-weight:600 !important; text-transform:uppercase; letter-spacing:.4px; }}
+    color:{TEXT_MID} !important; font-size:14px !important;
+    font-weight:600 !important; }}
   section[data-testid="stSidebar"] input,
   section[data-testid="stSidebar"] [data-baseweb="select"] {{
     background:{BG_WHITE} !important; color:{TEXT_DARK} !important;
@@ -329,7 +352,7 @@ st.markdown(
     background:#bfdbfe !important; }}
 
   .block-container {{ padding-top:1.5rem; padding-bottom:2rem; max-width:1400px; }}
-  h1,h2,h3,h4,h5,h6 {{ color:{BRAND_DARK} !important; }}
+  h1,h2,h3,h4,h5,h6 {{ color:{BRAND_DARK} !important; line-height:1.25; }}
 
   .filter-pill {{
     display:inline-block; background:#dbeafe; color:#1e40af;
@@ -338,12 +361,12 @@ st.markdown(
 
   .cat-badge {{
     display:inline-block; border-radius:20px; padding:2px 10px;
-    font-size:11px; font-weight:700; margin:2px; color:white; }}
+    font-size:12px; font-weight:700; margin:2px; color:white; }}
 
   .svc-chip {{
     display:inline-block; background:#f1f5f9; color:{TEXT_DARK};
     border:1px solid {BORDER}; border-radius:6px;
-    padding:3px 10px; margin:3px; font-size:13px; line-height:1.5; }}
+    padding:3px 10px; margin:3px; font-size:14px; line-height:1.5; }}
 
   [data-testid="stDownloadButton"] button {{
     background-color:{BRAND_DARK} !important; color:white !important;
@@ -439,7 +462,7 @@ def _link_cell(val: str) -> str:  # New Change for v5
             f'<a href="{href}" target="_blank" '
             f'style="color:{BRAND_MED};text-decoration:underline;">{_("view_link")}</a>'
         )
-    return f'<span style="color:#94a3b8;">{_("not_available_short")}</span>'
+    return f'<span style="color:{TEXT_MUTED};">{_("not_available_short")}</span>'
 
 
 def _directions_url(lat, lng) -> str:
@@ -467,12 +490,12 @@ def _hours_lines(hours: str) -> list[str]:
 # ── sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown(
-        f"<p style='font-size:20px;font-weight:800;color:{BRAND_DARK};"
+        f"<p style='font-size:20px;font-weight:700;color:{BRAND_DARK};"
         f"margin:0 0 4px;'>{_('filters_heading')}</p>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<p style='font-size:16px;color:{TEXT_MID};margin:0 0 12px;'>"
+        f"<p style='font-size:14px;color:{TEXT_MID};margin:0 0 12px;'>"
         f"{_('orgs_total').format(n=len(df))}</p>",
         unsafe_allow_html=True,
     )
@@ -548,7 +571,7 @@ if sel_org_type != "All":
 title_col, lang_col = st.columns([5, 2])
 with title_col:
     st.markdown(
-        f"<h1 style='color:{BRAND_DARK};font-size:28px;font-weight:800;margin:0 0 6px;'>"
+        f"<h1 style='color:{BRAND_DARK};font-size:30px;font-weight:700;margin:0 0 6px;'>"
         f"{_('page_heading')}</h1>",
         unsafe_allow_html=True,
     )
@@ -574,7 +597,7 @@ with hdr_l:
         else _("showing_filtered").format(n=n_filtered, total=n_total)
     )
     st.markdown(
-        f"<p style='color:{TEXT_MID};font-size:18px;margin:0;'>{txt}</p>",
+        f"<p style='color:{TEXT_MID};font-size:16px;margin:0;'>{txt}</p>",
         unsafe_allow_html=True,
     )
 with hdr_r:
@@ -645,14 +668,14 @@ with tab_map:
             phone = str(row.get("Phone", "")).strip()
             hours = str(row.get("Hours", "")).strip()
             phone_row = (
-                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'<tr><td style="color:{TEXT_MUTED};padding:3px 10px 3px 0;font-size:12px;'
                 f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_phone")}</td>'
                 f"<td>{_tel_link(phone)}</td></tr>"
                 if phone
                 else ""
             )
             hours_row = (
-                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'<tr><td style="color:{TEXT_MUTED};padding:3px 10px 3px 0;font-size:12px;'
                 f"font-weight:700;text-transform:uppercase;white-space:nowrap;"
                 f'vertical-align:top;">{_("popup_hours")}</td>'
                 f'<td style="color:{TEXT_MID};">{"<br>".join(_hours_lines(hours))}</td></tr>'
@@ -677,35 +700,35 @@ with tab_map:
                     f'font-size:12px;font-weight:600;text-decoration:none;">{_("visit_website")}</a>'
                 )
             else:
-                action_html += f'<span style="color:#94a3b8;font-size:12px;">{_("no_website_listed")}</span>'
+                action_html += f'<span style="color:{TEXT_MUTED};font-size:12px;">{_("no_website_listed")}</span>'
             action_html += "</div>"
 
             popup_html = (
-                f'<div style="font-family:Inter,sans-serif;width:310px;'
+                f'<div style="font-family:{FONT_STACK};width:310px;'
                 f'border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.12);">'
                 f'<div style="background:{pin_color};padding:14px 16px;">'
-                f'<div style="font-size:15px;font-weight:700;color:white;'
+                f'<div style="font-size:16px;font-weight:700;color:white;'
                 f'line-height:1.3;">{row["Name"]}</div>'
                 f"</div>"
                 f'<div style="padding:12px 16px;background:white;">'
                 f'<table style="width:100%;border-collapse:collapse;font-size:12px;'
                 f'color:{TEXT_DARK};">'
-                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'<tr><td style="color:{TEXT_MUTED};padding:3px 10px 3px 0;font-size:12px;'
                 f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_address")}</td>'
                 f"<td>{row['Address']}, {row['City']}, {row['State']}</td></tr>"
                 f"{phone_row}"
                 f"{hours_row}"
-                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'<tr><td style="color:{TEXT_MUTED};padding:3px 10px 3px 0;font-size:12px;'
                 f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_type")}</td>'
                 f"<td>{org_type}</td></tr>"
-                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'<tr><td style="color:{TEXT_MUTED};padding:3px 10px 3px 0;font-size:12px;'
                 f"font-weight:700;text-transform:uppercase;white-space:nowrap;"
                 f'vertical-align:top;">{_("popup_services")}</td>'
                 f'<td style="color:{TEXT_MID};">{svc_tags}</td></tr>'
-                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'<tr><td style="color:{TEXT_MUTED};padding:3px 10px 3px 0;font-size:12px;'
                 f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_impact")}</td>'
                 f"<td>{_link_cell(impact)}</td></tr>"
-                f'<tr><td style="color:#94a3b8;padding:3px 10px 3px 0;font-size:10px;'
+                f'<tr><td style="color:{TEXT_MUTED};padding:3px 10px 3px 0;font-size:12px;'
                 f'font-weight:700;text-transform:uppercase;white-space:nowrap;">{_("popup_strategic")}</td>'
                 f"<td>{_link_cell(strategic)}</td></tr>"
                 f"</table>"
@@ -714,7 +737,7 @@ with tab_map:
             )
 
             tooltip_html = (
-                f'<div style="font-family:Inter,sans-serif;font-size:13px;'
+                f'<div style="font-family:{FONT_STACK};font-size:14px;'
                 f'font-weight:700;color:{BRAND_DARK};max-width:200px;">{row["Name"]}</div>'
             )
 
@@ -860,7 +883,7 @@ with tab_detail:
                 f'<div style="background:{BG_WHITE};border-radius:12px;'
                 f"padding:22px 26px;box-shadow:0 1px 8px rgba(0,0,0,.08);"
                 f'border-left:5px solid {header_color};margin-bottom:20px;">'
-                f'<h2 style="color:{BRAND_DARK};margin:0;font-size:22px;">'
+                f'<h2 style="color:{BRAND_DARK};margin:0;font-size:24px;">'
                 f"{row['Name']}</h2>"
                 f"</div>",
                 unsafe_allow_html=True,
@@ -868,7 +891,7 @@ with tab_detail:
 
             def section_label(icon, text):
                 st.markdown(
-                    f"<p style='font-size:11px;font-weight:700;color:{TEXT_MID};"
+                    f"<p style='font-size:12px;font-weight:700;color:{TEXT_MID};"
                     f"text-transform:uppercase;letter-spacing:.5px;margin:16px 0 4px;'>"
                     f"{icon} {text}</p>",
                     unsafe_allow_html=True,
