@@ -428,6 +428,13 @@ def load_data(path: str) -> pd.DataFrame:
     df["Latitude"] = pd.to_numeric(df["Latitude"], errors="coerce")
     df["Longitude"] = pd.to_numeric(df["Longitude"], errors="coerce")
 
+    # Every MA zip starts with 0, which spreadsheet round-trips strip by
+    # reading the column as a number ("01840" -> 1840). Re-pad on load so a
+    # future re-export of the CSV can't silently reintroduce it.
+    df["Zip"] = df["Zip"].str.strip().apply(
+        lambda z: z.zfill(5) if z.isdigit() and len(z) < 5 else z
+    )
+
     df["SvcList"] = df["ServiceArea"].apply(_smart_split)
     if "Services" not in df.columns:
         df["Services"] = ""
