@@ -1,0 +1,63 @@
+Confirmed?,Org,SiteName,Address,City,State,Zip,Phone,Hours,ServicesHere,Kind,FoundAt,Note
+,Lazarus House Ministries,Administrative Office,412 Hampshire Street,Lawrence,MA,01841,(978) 689-8575,,Administration and donations,admin,https://lazarushouse.org/contact/,
+,Lazarus House Ministries,St. Martha's Food Pantry,242 Hampshire Street,Lawrence,MA,01841,,Wed 9 AM–2 PM,Food Pantry,public,https://lazarushouse.org/contact/,
+,Lazarus House Ministries,Good Shepherd Soup Kitchen,260 Park Street,Lawrence,MA,01841,,Daily breakfast 8:30–9:30 AM; Daily lunch 11:30 AM–1 PM,Soup Kitchen,public,https://lazarushouse.org/contact/,
+,Lazarus House Ministries,Thrift Store,229 South Union Street,Lawrence,MA,01843,(978) 557-5449,"Mon, Tue, Thu, Fri, Sat 10 AM–3 PM; Wed 9 AM–5 PM",Thrift Store,public,https://lazarushouse.org/contact/,
+,Lazarus House Ministries,Emergency Shelter — 24-hour intake line,,,,,(978) 794-8447,24 hours; 7 days,Emergency Shelter,public,https://lazarushouse.org/contact/,
+,Greater Lawrence Family Health,Main Site — Clinic,34 Haverhill Street,Lawrence,MA,01841,(978) 686-0090,Mon–Thu 8 AM–9 PM; Fri 9 AM–6 PM; Sat–Sun 9 AM–5 PM,Primary and walk-in care,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,Main Site — Pharmacy,34 Haverhill Street,Lawrence,MA,01841,(978) 688-1567,Mon–Thu 8:30 AM–9 PM; Fri 9 AM–7 PM; Sat–Sun 9 AM–5 PM,Pharmacy,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,North Site — Clinic,150 Park Street,Lawrence,MA,,(978) 685-1770,"Mon, Wed, Thu 8 AM–5 PM; Tue 8 AM–9 PM; Fri 9 AM–5 PM",Primary care,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,North Site — Pharmacy,150 Park Street,Lawrence,MA,,(978) 686-4453,Mon 8:30 AM–6 PM; Tue 8:30 AM–9 PM; Wed–Thu 8:30 AM–6 PM; Fri 9 AM–6 PM,Pharmacy,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,South Site — Clinic,73 Winthrop Avenue,Lawrence,MA,,(978) 686-3017,Mon 8 AM–9 PM; Tue–Thu 8 AM–5 PM; Fri 9 AM–5 PM,Primary care,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,South Site — Pharmacy,73 Winthrop Avenue,Lawrence,MA,,(978) 689-6790,Mon 8:30 AM–8 PM; Tue–Thu 8:30 AM–6 PM; Fri 9 AM–6 PM,Pharmacy,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,West Site — Clinic,700 Essex Street,Lawrence,MA,,(978) 689-2400,Mon 8 AM–8 PM; Tue–Thu 8 AM–5 PM; Fri 9 AM–5 PM,Primary care,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,West Site — Pharmacy,700 Essex Street,Lawrence,MA,,(978) 691-6248,Mon 8:30 AM–8 PM; Tue–Thu 8:30 AM–6 PM; Fri 9 AM–6 PM,Pharmacy,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,Methuen Site — Clinic,147 Pelham Street,Methuen,MA,,(978) 683-3491,Mon–Thu 8 AM–5 PM; Fri 9 AM–5 PM,Primary care,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,Methuen Site — Pharmacy,147 Pelham Street,Methuen,MA,,(978) 655-5731,"Mon, Tue, Thu 8:30 AM–6 PM; Wed 8:30 AM–7 PM; Fri 9 AM–6 PM",Pharmacy,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,Haverhill Site — Clinic,755 Main Street,Haverhill,MA,,(978) 557-2300,"Mon, Wed, Thu 8 AM–5 PM; Tue 8 AM–6 PM; Fri 9 AM–5 PM",Primary care,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,Haverhill Site — Pharmacy,755 Main Street,Haverhill,MA,,(978) 557-2399,Mon–Fri 9 AM–5 PM,Pharmacy,public,https://glfhc.org/locations/,
+,Greater Lawrence Family Health,Lawrence Hospital Site — Clinic,,Lawrence,MA,,(978) 983-0488,Mon–Thu 8 AM–5 PM; Fri 9 AM–5 PM,Primary care (no pharmacy at this site),public,https://glfhc.org/locations/,
+,Neighbors in Need,Administrative Office,60 Island Street,Lawrence,MA,,(978) 699-3683,,Administration — no food distributed at this address,admin,https://needfood.org/,
+,Neighbors in Need,Iglesia Adventista Del Septimo Dia Jerusalen,198 South Broadway,Lawrence,MA,,,Tue 9–10:30 AM,Food Pantry,public,https://needfood.org/,
+,Neighbors in Need,First Church Congregational,26 Pleasant Street,Methuen,MA,,,Tue 5:30–6:30 PM,Food Pantry,public,https://needfood.org/,
+,Neighbors in Need,St. Andrew's Church,90 Broadway,Methuen,MA,,,Wed 12:30–2 PM,Food Pantry,public,https://needfood.org/,
+,Neighbors in Need,Lawrence Boys and Girls Club,136 Water Street,Lawrence,MA,01841,,Thu 9–10:30 AM,Food Pantry,public,https://needfood.org/,
+,Neighbors in Need,Robb Center,30 Whittier Court,Andover,MA,,,Thu 4–5 PM,Food Pantry,public,https://needfood.org/,
+,Neighbors in Need,Ministerio Apostolico Jesucristo es el Señor,96 East Haverhill Street,Lawrence,MA,,,Fri 9–10:30 AM,Food Pantry,public,https://needfood.org/,
+,Essex County Habitat For Humanity,Main Office,14 Park Street,Danvers,MA,01923,(978) 681-8858,Mon–Fri 8:30 AM–1:30 PM (in person; appointments recommended),Administration,admin,https://www.essexcountyhabitat.org/contact,
+,Essex County Habitat For Humanity,Lawrence ReStore,647 Andover Street,Lawrence,MA,01843,(978) 686-3323,Tue–Sat 10 AM–5 PM,ReStore donations and shopping,public,https://www.essexcountyhabitat.org/contact,
+,Greater Lawrence Community Action Council (GLCAC),Administration & Finance,"305 Essex Street, 4th Floor",Lawrence,MA,01840,(978) 681-4900,Mon–Fri 8:30 AM–4:30 PM,Administration,admin,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Community Service Center,"305 Essex Street, 2nd Floor",Lawrence,MA,01840,(978) 681-4970,Mon–Fri 8:30 AM–4:30 PM,Community services intake,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Home Energy Assistance Program (LIHEAP),"305 Essex Street, 2nd Floor",Lawrence,MA,01840,(978) 681-4950,Mon–Fri 8:30 AM–4:30 PM,Energy bill assistance,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Energy Conservation & Weatherization,"305 Essex Street, 2nd Floor",Lawrence,MA,01840,(978) 681-4956,Mon–Fri 8:30 AM–4 PM,Weatherization and energy conservation,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Housing Assistance Program,"305 Essex Street, 2nd Floor",Lawrence,MA,01840,(978) 681-4900,Mon–Fri 8:30 AM–4:30 PM,Housing assistance,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Health Insurance Navigator Program,"305 Essex Street, 2nd Floor",Lawrence,MA,01840,(978) 620-4784,Mon–Fri 8:30 AM–4:30 PM,Health insurance enrollment,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Childhood Lead Poisoning Prevention Program,"305 Essex Street, 2nd Floor",Lawrence,MA,01840,(978) 681-4940,Mon–Fri 8:30 AM–4:30 PM,Lead poisoning prevention,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Volunteer Income Tax Assistance (VITA),305 Essex Street,Lawrence,MA,01840,(978) 620-4752,Mon & Wed 9 AM–5 PM; Tue & Thu 12–8 PM; Sat 9 AM–1 PM,Free tax preparation,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Workforce — Adult Development,"305 Essex Street, 3rd Floor",Lawrence,MA,01840,(978) 620-4729,Mon–Fri 9 AM–5 PM,Workforce development,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Coordinated Family & Community Engagement,"305 Essex Street, 3rd Floor",Lawrence,MA,01840,(978) 620-4726,Mon–Fri 8 AM–4 PM,Family engagement,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),WIC — Lawrence Office,"305 Essex Street, 2nd Floor",Lawrence,MA,01840,(978) 681-4960,"Mon, Tue, Wed, Fri 8:30 AM–4:30 PM; Thu 10 AM–6 PM",WIC nutrition program,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),WIC — Methuen Office,141 Tenney Street,Methuen,MA,01844,(978) 681-4963,,WIC nutrition program,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),WIC — Andover/North Andover Office,"Andover/North Andover YMCA, 165 Haverhill Street",Andover,MA,01810,(978) 681-4968,1st & 3rd Thu 10 AM–1 PM and 2–6 PM,WIC nutrition program,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Head Start Administrative Offices,"305 Essex Street, 3rd Floor",Lawrence,MA,01840,(978) 681-4920,Mon–Fri 7 AM–5 PM,Head Start administration,admin,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Child Care Center (Perrault),585 Andover Street,Lawrence,MA,01843,(978) 681-4910,Mon–Fri 7 AM–5 PM,Child care,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Head Start — Casa Roja Center,246-252 Andover Street,Lawrence,MA,01843,(978) 681-4927,Mon–Fri 7 AM–5 PM,Head Start,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Head Start — Common Street Center,"305 Essex Street, 1st Floor (entrance on Common St.)",Lawrence,MA,01840,(978) 681-4959,Mon–Fri 7 AM–5 PM,Head Start,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Head Start — Gill Avenue Center,24 Gill Avenue,Methuen,MA,01844,(978) 686-2208,Mon–Fri 7 AM–5 PM,Head Start,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Head Start — Park Street Center,62 Park Street,Lawrence,MA,01841,(978) 681-4982,Mon–Fri 7 AM–5 PM,Head Start,public,https://www.glcac.org/contact-us/,
+,Greater Lawrence Community Action Council (GLCAC),Head Start — Water Street Center,136 Water Street,Lawrence,MA,01841,(978) 681-4924,Mon–Fri 7 AM–5 PM,Head Start,public,https://www.glcac.org/contact-us/,
+,Partners for Child Development,Andover Office (main),32 Osgood Street,Andover,MA,01810,(978) 475-3806,,Early Intervention; Anderson School; Woodbridge School,public,https://www.mypcd.org,
+,Partners for Child Development,Lawrence Office,"439 S. Union Street, Bldg. 1, Suite 101",Lawrence,MA,01843,(978) 688-5070,,Early Intervention,public,https://www.mypcd.org,
+,Partners for Child Development,Chelmsford Office,"321 Billerica Road, Suite 200",Chelmsford,MA,01824,(978) 710-9992,,Early Intervention,public,https://www.mypcd.org,
+,Community Giving Tree,Boxford Giving Center,572 Main Street,Boxford,MA,01921,(978) 769-5056,Mon–Fri 9 AM–2 PM; Sat–Sun closed,Donation center,public,https://www.communitygivingtree.org,
+,Community Giving Tree,Lawrence Giving Center,599 Canal Street,Lawrence,MA,,(978) 769-5056,Mon–Fri 9 AM–2 PM; Sat–Sun closed,Donation center,public,https://www.communitygivingtree.org,
+QUESTION,Bread and Roses Housing,,,,,,,,,,,"MERGED into Centro de Apoyo Familiar (CAF); brhousing.org redirects. Keep, relabel, or remove from the dashboard?"
+QUESTION,Lawrence Prospera- Quintana Center,,,,,,,,,,,CSV address 404 Haverhill St; their site lists 404 as the former JCC Gym and Quintana at 580 Haverhill St. Which is right?
+QUESTION,Neighbors in Need,,,,,,,,,,,"Phone conflict: CSV has (978) 685-8321, needfood.org publishes (978) 699-3683. Which is current?"
+QUESTION,Lawrence Boys and Girls Club,,,,,,,,,,,Their site says 'two facilities in the city' but publishes only 136 Water St. What is the second address?
+QUESTION,Eliot Community Human Services,,,,,,,,,,,No Lawrence-specific phone published; only Lexington HQ (781) 861-0890. Is there a local number for 248 Broadway?
+QUESTION,The Community Group,,,,,,,,,,,Site blocks automated fetch. Needs a manual browser check for phone/hours.
+QUESTION,St. Mary's Parish,,,,,,,,,,,Site blocks automated fetch. Needs a manual browser check for phone/hours.
+QUESTION,The Psychological Center,,,,,,,,,,,Own contact page is gone (HTTP 410). Aggregators list (978) 291-2262 — unconfirmed.
+QUESTION,ACT Lawrence,,,,,,,,,,,"No phone published anywhere on their site. Confirm none exists, or supply one."
+QUESTION,St. Patrick's Catholic Church,,,,,,,,,,,No phone on site. Also: affiliated Cor Unum Meal Center may deserve its own entry.
