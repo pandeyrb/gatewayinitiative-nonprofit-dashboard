@@ -6,7 +6,6 @@ Run:  streamlit run app.py
 import json
 import os
 import re
-import unicodedata
 
 from datetime import datetime
 from urllib.parse import quote_plus
@@ -17,7 +16,6 @@ import pandas as pd
 import requests
 import streamlit as st
 
-from branca.element import MacroElement, Template
 from streamlit_folium import st_folium
 
 from hours import (
@@ -146,7 +144,7 @@ _POPUP_CSS = """
 .leaflet-popup-content{margin:0;width:auto!important;line-height:1.45}
 
 .gwi-pop{font-family:__FONT__;width:322px;max-width:84vw;display:flex;
-  flex-direction:column;max-height:min(360px,62vh);color:__TEXT_DARK__}
+  flex-direction:column;max-height:min(392px,72vh);color:__TEXT_DARK__}
 .gwi-pop-hd{flex:0 0 auto;background:__BRAND_MED__;color:#fff;font-size:15px;
   font-weight:700;line-height:1.3;padding:11px 14px}
 /* The only scrolling region. overscroll-behavior stops the page from taking
@@ -168,122 +166,35 @@ _POPUP_CSS = """
 .gwi-btn{display:inline-block;padding:6px 12px;border-radius:6px;font-size:12px;
   font-weight:600;text-decoration:none;color:#fff!important}
 
-.gwi-pop-sub{display:block;font-size:12px;font-weight:500;opacity:.85;margin-top:2px}
-.gwi-small{font-size:11px}
-.gwi-today{font-size:12px;margin-bottom:4px}
-.gwi-checked{font-size:11px;color:__TEXT_MUTED__;margin:-2px 0 6px}
-/* An org inside a shared building: hidden under the building pin, shown while
-   its own popup is open or while it is the focused org. */
-.gwi-stacked{visibility:hidden;pointer-events:none}
-.gwi-stacked.gwi-open,.gwi-stacked.gwi-focus{visibility:visible;pointer-events:auto}
-.gwi-prog details{font-size:12px}
-
-/* Address and phone: an icon instead of a label column, so the text gets the
-   full width of the popup. */
-.gwi-info{display:flex;gap:7px;align-items:flex-start;font-size:12px;margin:5px 0;
-  color:__TEXT_DARK__}
-.gwi-ico{flex:0 0 14px;color:__TEXT_MUTED__;padding-top:1px;line-height:0}
-
-/* Small section heading inside a popup. */
-.gwi-sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
-  color:__TEXT_MUTED__;margin:11px 0 5px;padding-top:9px;border-top:1px solid __BORDER__}
-
-.gwi-chips{display:flex;flex-wrap:wrap;gap:4px}
-.gwi-chip{display:inline-block;background:#eef4fb;color:__BRAND_DARK__;
-  border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600;line-height:1.5}
-.gwi-more{flex-basis:100%}
-.gwi-pop .gwi-more>summary{font-size:11px}
-.gwi-more>div{display:flex;flex-wrap:wrap;gap:4px;padding:4px 0 0!important}
-
-/* Location list. Each numbered row matches a numbered pin. */
-.gwi-hint{font-size:11px;color:__TEXT_MUTED__;margin:-2px 0 6px}
-.gwi-note{background:#fff6e5;border-left:3px solid #d9922e;border-radius:4px;
-  padding:6px 8px;margin:0 0 6px;font-size:11px;line-height:1.4}
-.gwi-locs{display:flex;flex-direction:column;gap:2px}
-.gwi-loc{display:flex;gap:9px;align-items:flex-start;padding:6px 6px;
-  border-radius:8px;cursor:pointer;transition:background .12s}
-.gwi-loc:hover,.gwi-loc:focus{background:#eef4fb;outline:none}
-.gwi-loc--static{cursor:default}
-.gwi-loc--static:hover{background:none}
-.gwi-loc-tx{flex:1 1 auto;min-width:0}
-.gwi-loc-t{font-size:12px;font-weight:700;color:__TEXT_DARK__;line-height:1.3}
-.gwi-loc-m{font-size:11px;color:__TEXT_MID__;margin-top:1px}
-.gwi-loc-s{font-size:11px;font-weight:600;margin-top:1px}
-.gwi-s-open{color:#15803d}
-.gwi-s-closed{color:__TEXT_MUTED__}
-.gwi-go{flex:0 0 auto;color:__BRAND_MED__;font-size:18px;line-height:1;padding-top:2px}
-.gwi-tag{display:inline-block;margin-left:5px;background:#f1f5f9;color:__TEXT_MUTED__;
-  border-radius:4px;padding:0 5px;font-size:10px;font-weight:700;
-  text-transform:uppercase;vertical-align:1px}
-.gwi-progs{margin-top:3px}
-.gwi-prog-li{font-size:11px;margin:3px 0;color:__TEXT_MID__}
-.gwi-prog-li b{color:__TEXT_DARK__}
-
-/* The number chip, drawn the same way as the numbered pin it points at. */
-.gwi-num{flex:0 0 22px;height:22px;border-radius:50%;display:inline-flex;
-  align-items:center;justify-content:center;font-size:12px;font-weight:700;
-  background:#fff;color:__BRAND_MED__;border:2px solid __BRAND_MED__;box-sizing:border-box}
-.gwi-num--own{background:__BRAND_MED__;color:#fff}
-.gwi-num--off{border-color:__BORDER__;color:__TEXT_MUTED__}
-.gwi-num--hd{flex:0 0 22px;border-color:#fff;color:__BRAND_MED__}
-.gwi-hd-row{display:flex;gap:8px;align-items:center}
-
-/* Programmes inside one building (a site's clinic and pharmacy). */
-.gwi-prog{padding:6px 0;border-bottom:1px solid __BORDER__}
-.gwi-prog:last-of-type{border-bottom:none}
-.gwi-prog-t{font-size:12px;font-weight:700;margin-bottom:3px}
-
-.gwi-back{cursor:pointer;color:#fff!important;text-decoration:none}
-.gwi-back:hover{text-decoration:underline}
-
-/* ‹ 2 / 6 › in a location's footer. */
-.gwi-nav{margin-left:auto;display:inline-flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:600;color:__TEXT_MID__}
-.gwi-nav button{width:28px;height:28px;border-radius:6px;border:1px solid __BORDER__;
-  background:#fff;color:__BRAND_MED__;font-size:17px;line-height:1;cursor:pointer;padding:0}
-.gwi-nav button:hover{background:#eef4fb}
-
-.gwi-reports{font-size:11px;color:__TEXT_MID__;margin-top:10px}
-
-/* Hover card on a pin. */
-.gwi-tt{font-family:__FONT__;max-width:210px;white-space:normal}
-.gwi-tt b{display:block;font-size:13px;color:__BRAND_DARK__;line-height:1.3}
-.gwi-tt span{display:block;font-size:11px;color:__TEXT_MUTED__;margin-top:1px}
-
-/* Pins. Only opacity/filter are animated on the marker element itself —
-   Leaflet positions every marker with an inline `transform`, so a transform
-   there would fight it. Scaling is done on our inner div instead. */
-.gwi-pin{position:relative;transform-origin:50% 100%;transition:transform .15s ease}
+/* Locations that appear when an organisation is opened. Only opacity is
+   animated: Leaflet positions every marker with an inline `transform`, so
+   animating transform here would fight the positioning. */
 .gwi-pin-in{animation:gwiFade .22s ease-out}
 @keyframes gwiFade{from{opacity:0}to{opacity:1}}
-.gwi-count{position:absolute;top:-5px;right:-9px;min-width:17px;height:17px;
-  padding:0 4px;box-sizing:border-box;border-radius:999px;background:__BRAND_DARK__;
-  color:#fff;border:2px solid #fff;font:700 10px/13px __FONT__;text-align:center;
-  box-shadow:0 1px 3px rgba(0,0,0,.3)}
-.gwi-hi>.gwi-pin{transform:scale(1.3)}
-.gwi-hi{z-index:10000!important}
 
-.gwi-pop--site{width:268px;max-height:min(360px,70vh)}
+/* A site card is the same component as an org popup, just narrower. */
+.gwi-pop--site{width:256px;max-height:min(330px,68vh)}
+.gwi-pop-sub{font-size:11px;font-weight:500;opacity:.8;margin-top:1px}
 
-/* Focus mode: opening an org that runs several sites hides every other org,
-   so its own locations are the only thing competing for attention. */
+/* Focus mode: opening an org that runs several sites fades every other org out,
+   so its own cluster is the only thing competing for attention. Closing the
+   popup brings them back.
+   Only opacity is animated, on purpose — Leaflet positions each marker with an
+   inline `transform`, so a transform here would be ignored or fight it. */
+/* Caption that names what is being focused. Pins appearing while others fade
+   is easy to miss, so the map says what it just did. */
 .gwi-focusnote{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
-  z-index:650;max-width:88%;display:flex;align-items:center;gap:10px;
-  background:rgba(255,255,255,.97);color:__TEXT_DARK__;
+  z-index:650;pointer-events:none;max-width:82%;
+  background:rgba(255,255,255,.96);color:__TEXT_DARK__;
   border:1px solid __BORDER__;border-radius:999px;
-  padding:5px 6px 5px 14px;font:600 12px/1.35 __FONT__;
+  padding:6px 14px;font:600 12px/1.35 __FONT__;text-align:center;
   box-shadow:0 2px 10px rgba(0,0,0,.14);
-  opacity:0;pointer-events:none;transition:opacity .2s ease}
-.gwi-focusnote.is-on{opacity:1;pointer-events:auto}
-.gwi-fn-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gwi-fn-x{flex:0 0 auto;border:none;border-radius:999px;background:__BRAND_MED__;
-  color:#fff;font:600 12px/1 __FONT__;padding:6px 11px;cursor:pointer}
-.gwi-fn-x:hover{background:__BRAND_DARK__}
+  opacity:0;transition:opacity .2s ease}
+.gwi-focusnote.is-on{opacity:1}
 
 .leaflet-marker-icon{transition:opacity .2s ease}
 .gwi-dim{opacity:0!important;pointer-events:none!important}
 .gwi-focus{filter:drop-shadow(0 0 7px rgba(45,108,180,.55))}
-.gwi-focus .gwi-count{display:none}
 
 </style>
 """
@@ -353,9 +264,7 @@ st.set_page_config(
     page_title="Lawrence Resource Finder",
     page_icon="🗺️",
     layout="wide",
-    # "auto" collapses the sidebar on phones. "expanded" opened it over the whole
-    # screen on load, so the first thing a phone user saw was a filter panel.
-    initial_sidebar_state="auto",
+    initial_sidebar_state="expanded",
 )
 
 # ── design tokens ─────────────────────────────────────────────────────────────
@@ -407,7 +316,6 @@ T = {
         "orgs_total": "{n} organizations total",
         "search_label": "Search",
         "search_placeholder": "Name, city, or service…",
-        "search_placeholder_main": "🔍  Search: food, rent, ESL, an organization's name…",
         "category_label": "Category",
         "category_placeholder": "Broad area of need…",
         "services_label": "Specific service",
@@ -419,9 +327,7 @@ T = {
         "showing_all": "Showing all {n} organizations",
         "showing_filtered": "Showing {n} of {total} organizations",
         "nav_cta": "Ask AI assistant",
-        "nav_cta_help": "Opens Google Gemini in a new tab. It needs a Google sign-in, and some work and city computers block it.",
         "feedback_cta": "💬 Give Feedback",
-        "missing_org": "Is an organization missing, or is something here wrong? Tell us →",
         "feedback_unset": "Feedback form link not yet configured",
         "tab_map": "🗺️  Map",
         "tab_directory": "📋  Directory",
@@ -456,19 +362,8 @@ T = {
         "hours_today": "Today",
         "hours_full_week": "Full week",
         "hours_other_days": "Other days",
-        "focus_banner": "{org} · {n} locations",
-        "focus_show_all": "Show all",
-        "pin_multi_short": "{n} locations",
-        "bldg_sub": "{n} organizations at this location",
-        "bldg_hint": "Tap an organization to see its details.",
-        "bldg_back": "{n} organizations at this address",
-        "months_short": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
-        "pin_multi_hint": "{n} locations — click to see them all",
-        "loc_this_pin": "This pin",
-        "loc_programs_here": "{n} programs here",
-        "loc_tap_hint": "Tap a location to see it on the map.",
-        "loc_office_tag": "Office",
-        "more_n": "+{n} more",
+        "loc_on_map": "also shown on the map",
+        "focus_banner": "{n} locations shown — other organizations hidden",
         "popup_type": "Type",
         "popup_services": "Services",
         "popup_impact": "Impact Report",
@@ -506,7 +401,6 @@ T = {
         "sec_locations": "Locations & Hours",
         "loc_admin_badge": "Office only — no walk-in services",
         "loc_admin_note": "The pin above is this organization's office. Services are provided at the locations listed here.",
-        "loc_admin_note_map": "This pin is the organization's office. Services are at the numbered locations.",
         "loc_directions": "Directions",
         "loc_call": "Call",
         "loc_no_address": "By phone only — no public address listed",
@@ -525,7 +419,6 @@ T = {
         "orgs_total": "{n} organizaciones en total",
         "search_label": "Buscar",
         "search_placeholder": "Nombre, ciudad o servicio…",
-        "search_placeholder_main": "🔍  Buscar: comida, vivienda, inglés, nombre de una organización…",
         "category_label": "Categoría",
         "category_placeholder": "Área general de necesidad…",
         "services_label": "Servicio específico",
@@ -537,9 +430,7 @@ T = {
         "showing_all": "Mostrando las {n} organizaciones",
         "showing_filtered": "Mostrando {n} de {total} organizaciones",
         "nav_cta": "Preguntar al asistente de IA",
-        "nav_cta_help": "Abre Google Gemini en una pestaña nueva. Requiere iniciar sesión con Google, y algunas computadoras del trabajo o de la ciudad lo bloquean.",
         "feedback_cta": "💬 Enviar Comentarios",
-        "missing_org": "¿Falta una organización o hay algo incorrecto? Avísenos →",
         "feedback_unset": "El enlace del formulario aún no está configurado",
         "tab_map": "🗺️  Mapa",
         "tab_directory": "📋  Directorio",
@@ -574,19 +465,8 @@ T = {
         "hours_today": "Hoy",
         "hours_full_week": "Semana completa",
         "hours_other_days": "Otros días",
-        "focus_banner": "{org} · {n} ubicaciones",
-        "focus_show_all": "Mostrar todo",
-        "pin_multi_short": "{n} ubicaciones",
-        "bldg_sub": "{n} organizaciones en esta ubicación",
-        "bldg_hint": "Toque una organización para ver sus detalles.",
-        "bldg_back": "{n} organizaciones en esta dirección",
-        "months_short": "ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic",
-        "pin_multi_hint": "{n} ubicaciones — haga clic para verlas todas",
-        "loc_this_pin": "Este marcador",
-        "loc_programs_here": "{n} programas aquí",
-        "loc_tap_hint": "Toque una ubicación para verla en el mapa.",
-        "loc_office_tag": "Oficina",
-        "more_n": "+{n} más",
+        "loc_on_map": "también en el mapa",
+        "focus_banner": "{n} ubicaciones mostradas — otras organizaciones ocultas",
         "popup_type": "Tipo",
         "popup_services": "Servicios",
         "popup_impact": "Informe de Impacto",
@@ -624,7 +504,6 @@ T = {
         "sec_locations": "Ubicaciones y Horarios",
         "loc_admin_badge": "Solo oficina — no atiende sin cita",
         "loc_admin_note": "El marcador de arriba es la oficina de esta organización. Los servicios se ofrecen en las ubicaciones que aparecen aquí.",
-        "loc_admin_note_map": "Este marcador es la oficina de la organización. Los servicios se ofrecen en las ubicaciones numeradas.",
         "loc_directions": "Cómo llegar",
         "loc_call": "Llamar",
         "loc_no_address": "Solo por teléfono — sin dirección pública",
@@ -677,14 +556,6 @@ def _format_phone(raw: str) -> str:
     if len(digits) != 10:
         return text
     return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
-
-
-def _fold(text: str) -> str:
-    """Strip accents: 'Inglés' -> 'Ingles', so either spelling finds the other."""
-    return "".join(
-        ch for ch in unicodedata.normalize("NFKD", str(text))
-        if not unicodedata.combining(ch)
-    )
 
 
 def _smart_split(s: str) -> list[str]:
@@ -770,22 +641,6 @@ st.markdown(
     font-size:16px !important; font-weight:600 !important; }}
 
   div[data-testid="stRadio"] {{ margin-top:18px; }}
-
-  /* Phones. Streamlit stacks every column, which turned eight quick-filter
-     chips into eight full-width rows and pushed the map a screen down. Two per
-     row keeps them all visible above the map. */
-  @media (max-width: 640px) {{
-    .block-container {{ padding-top:1rem; }}
-    h1 {{ font-size:24px !important; }}
-    .st-key-gwi_chips [data-testid="stHorizontalBlock"] {{
-      flex-direction:row !important; flex-wrap:wrap !important; gap:6px !important; }}
-    .st-key-gwi_chips [data-testid="stColumn"],
-    .st-key-gwi_chips [data-testid="column"] {{
-      flex:1 1 calc(50% - 6px) !important; min-width:calc(50% - 6px) !important;
-      width:calc(50% - 6px) !important; }}
-    .st-key-gwi_chips button {{ min-height:38px; padding:4px 8px; }}
-    .st-key-gwi_chips button p {{ font-size:14px; }}
-  }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -1036,57 +891,25 @@ def _group_by_address(rows: list[dict]) -> list[tuple[str, list[dict]]]:
     return list(groups.items())
 
 
-def _pin_svg(
-    color: str,
-    fade: bool = False,
-    number: str = "",
-    count: int = 0,
-    solid_number: str = "",
-) -> str:
-    """The teardrop map pin, in two roles.
+def _pin_svg(color: str, fade: bool = False) -> str:
+    """The teardrop map pin.
 
-    Solid: an organisation. When it runs several places, a small count bubble
-    sits on its shoulder, so the map says "there's more here" before anyone
-    clicks.
-
-    Hollow and numbered: one of that organisation's other locations. Same
-    silhouette so it reads as the same organisation, inverted so it is never
-    mistaken for a different one; the number matches the popup list.
-
-    Dark with a white number: a building several organisations share (see
-    _shared_buildings); the number is how many are inside.
+    Shared by an organisation's own marker and by its other locations on
+    purpose: one marker design for the whole map. An earlier version drew the
+    extra locations as small dots, which read as a different kind of thing
+    entirely and made a focused organisation look cluttered rather than like
+    one organisation in several places.
     """
-    if solid_number:
-        shape = (
-            f'<path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 36 16 36S32 26 32 16'
-            f'C32 7.163 24.837 0 16 0z" fill="{color}" stroke="#fff" '
-            f'stroke-width="2"/>'
-            f'<text x="16" y="21.5" text-anchor="middle" font-size="15" '
-            f'font-weight="700" font-family="Arial,sans-serif" fill="#fff">'
-            f"{solid_number}</text>"
-        )
-    elif number:
-        shape = (
-            f'<path d="M16 1.5C8 1.5 1.5 8 1.5 16c0 9.3 14.5 33.5 14.5 33.5S30.5 25.3 '
-            f'30.5 16C30.5 8 24 1.5 16 1.5z" fill="#fff" stroke="{color}" '
-            f'stroke-width="3"/>'
-            f'<text x="16" y="21.5" text-anchor="middle" font-size="15" '
-            f'font-weight="700" font-family="Arial,sans-serif" fill="{color}">'
-            f"{number}</text>"
-        )
-    else:
-        shape = (
-            f'<path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 36 16 36S32 26 32 16'
-            f'C32 7.163 24.837 0 16 0z" fill="{color}" stroke="#fff" '
-            f'stroke-width="2"/>'
-            f'<circle cx="16" cy="16" r="7" fill="white" opacity="0.85"/>'
-        )
-    bubble = f'<span class="gwi-count">{count}</span>' if count > 1 else ""
-    cls = "gwi-pin gwi-pin-in" if fade else "gwi-pin"
     return (
-        f'<div class="{cls}" style="width:25px;height:41px;">'
+        f'<div style="width:25px;height:41px;"'
+        f'{" class=\"gwi-pin-in\"" if fade else ""}>'
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 52" '
-        f'width="25" height="41">{shape}</svg>{bubble}</div>'
+        f'width="25" height="41">'
+        f'<path d="M16 0C7.163 0 0 7.163 0 16c0 10 16 36 16 36S32 26 32 16'
+        f'C32 7.163 24.837 0 16 0z" fill="{color}" stroke="#fff" '
+        f'stroke-width="2"/>'
+        f'<circle cx="16" cy="16" r="7" fill="white" opacity="0.85"/>'
+        f"</svg></div>"
     )
 
 
@@ -1097,370 +920,167 @@ def _site_coords(loc: dict) -> tuple[float, float] | None:
         return None
 
 
-def _addr_line(loc: dict) -> str:
-    return ", ".join(
-        p for p in (loc.get(k, "").strip() for k in ("Address", "City", "State", "Zip")) if p
-    )
+def _locations_html(groups: list[tuple[str, list[dict]]], n_plotted: int = 0) -> str:
+    """Render an org's sites as a folded block for the map popup.
 
-
-def _group_title(locs: list[dict]) -> str:
-    """One name for a building.
-
-    The shared site name when the programmes differ only by suffix ("Main Site
-    — Clinic"/"— Pharmacy"). Where they share nothing, as with a dozen unrelated
-    agency programmes at one address, the street is the honest label — the
-    first programme's name would imply the entry only covers that one.
+    One card per building (see _group_by_address). The sites are also drawn on
+    the map while this popup is open, so the list says so rather than leaving
+    the dots to explain themselves.
     """
-    head = locs[0]
-    title = head.get("LocationName", "").strip()
-    if len(locs) > 1:
-        stems = {loc.get("LocationName", "").split("—")[0].strip() for loc in locs}
-        title = (
-            stems.pop()
-            if len(stems) == 1
-            else (_street_of(head.get("Address", "")) or title)
-        )
-    return title
+    if not groups:
+        return ""
 
+    cards: list[str] = []
 
-def _program_label(loc: dict) -> str:
-    name = loc.get("LocationName", "").strip()
-    return name.split("—")[-1].strip() if "—" in name else name
-
-
-def _site_plan(org_row, groups: list[tuple[str, list[dict]]]) -> list[dict]:
-    """Decide, once, how each of an org's buildings appears on the map.
-
-    Three kinds: the building the org's own pin already stands on ("own"), a
-    building with coordinates that gets its own numbered pin, and a site with
-    no address (a hotline) that can only be listed. The popup list and the
-    pins both read this, so the numbers can never disagree.
-
-    Numbered by distance from the org's own pin, so 1 is the nearest and
-    stepping through them with ‹ › moves outward instead of zig-zagging.
-    """
-    own = (
-        _street_of(org_row["Address"]).lower(),
-        str(org_row["City"]).strip().lower(),
-    )
-    try:
-        origin = (float(org_row["Latitude"]), float(org_row["Longitude"]))
-    except (TypeError, ValueError):
-        origin = None
-
-    entries = []
     for _key, locs in groups:
         head = locs[0]
-        # Compared by street address rather than by distance: Lazarus House's
-        # soup kitchen is a genuinely separate place 40 m from its office.
-        is_own = (
-            _street_of(head.get("Address", "")).lower(),
-            head.get("City", "").strip().lower(),
-        ) == own
-        coords = None if is_own else _site_coords(head)
-        entries.append({"locs": locs, "own": is_own, "coords": coords, "num": 0})
-
-    def _dist(e):
-        if not (origin and e["coords"]):
-            return 0.0
-        return (e["coords"][0] - origin[0]) ** 2 + (e["coords"][1] - origin[1]) ** 2
-
-    entries.sort(key=lambda e: (not e["own"], e["coords"] is None, _dist(e)))
-    n = 0
-    for e in entries:
-        if e["coords"]:
-            n += 1
-            e["num"] = n
-    return entries
-
-
-def _group_status(locs: list[dict]) -> tuple[str, str]:
-    """(state, short text) for a building — open if any programme there is."""
-    scheds = [s for loc in locs for s in _schedules(loc.get("Hours", ""))]
-    state, detail, _label = open_status(scheds, _now_local(), _day_names())
-    if state == "open":
-        return state, _("status_open").capitalize() + (
-            f" · {_('status_until').format(t=detail)}" if detail else ""
-        )
-    if state == "closed":
-        return state, _("status_closed").capitalize() + (
-            f" · {_('status_opens').format(t=detail)}" if detail else ""
-        )
-    return state, ""
-
-
-_ICON_PIN = (
-    '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" '
-    'd="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 '
-    '2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>'
-)
-_ICON_PHONE = (
-    '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" '
-    'd="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 '
-    '3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 '
-    '1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>'
-)
-
-
-def _checked_date(raw) -> str:
-    """'2026-09-24' -> 'Sep 24, 2026' (or '24 sep 2026'). Unparseable passes through."""
-    text = str(raw or "").strip()
-    try:
-        d = datetime.strptime(text[:10], "%Y-%m-%d")
-    except ValueError:
-        return text
-    mon = _("months_short").split(",")[d.month - 1]
-    if st.session_state["lang"] == "es":
-        return f"{d.day} {mon} {d.year}"
-    return f"{mon} {d.day}, {d.year}"
-
-
-def _info_line(icon: str, html: str) -> str:
-    return f'<div class="gwi-info"><span class="gwi-ico">{icon}</span><span>{html}</span></div>'
-
-
-def _chips_html(items: list[str], keep: int = 4) -> str:
-    """Services as chips; past `keep`, the rest fold behind "+N more"."""
-    if not items:
-        return ""
-    chip = lambda s: f'<span class="gwi-chip">{s}</span>'
-    out = "".join(chip(s) for s in items[:keep])
-    rest = items[keep:]
-    if rest:
-        out += (
-            f'<details class="gwi-more"><summary>{_("more_n").format(n=len(rest))}'
-            f'</summary><div>{"".join(chip(s) for s in rest)}</div></details>'
-        )
-    return f'<div class="gwi-chips">{out}</div>'
-
-
-def _locations_html(plan: list[dict], key: str | None, n_pins: int) -> str:
-    """An org's locations as a numbered list that drives the map.
-
-    Each numbered row matches a numbered pin. Tapping a row opens that pin;
-    hovering it (desktop) lifts the pin, so the eye can connect the two without
-    reading addresses. Detail — every programme's hours, phone, directions —
-    lives in each location's own popup rather than being stacked here, which is
-    what used to make this popup taller than the map.
-    """
-    if not plan:
-        return ""
-
-    rows = []
-    admin_pin = False
-    for e in plan:
-        locs, head = e["locs"], e["locs"][0]
         is_admin = all(loc.get("Kind", "") == "admin" for loc in locs)
-        title = _group_title(locs)
-        office = f'<span class="gwi-tag">{_("loc_office_tag")}</span>' if is_admin else ""
+        addr = ", ".join(
+            p
+            for p in (
+                head.get(k, "").strip() for k in ("Address", "City", "State", "Zip")
+            )
+            if p
+        )
 
-        svc = head.get("ServicesHere", "").strip() if len(locs) == 1 else ""
-        city = head.get("City", "").strip()
-        meta_bits = [x for x in (svc if not is_admin else "", city) if x]
-        state, status_txt = _group_status(locs)
-        status = (
-            f'<div class="gwi-loc-s gwi-s-{state}">● {status_txt}</div>'
-            if status_txt
+        # Card title: the shared site name when the programmes differ only by
+        # suffix ("Main Site — Clinic"/"— Pharmacy"). Where they share nothing,
+        # as with a dozen unrelated agency programmes at one address, the
+        # street is the honest label — the first programme's name would imply
+        # the card only covers that one.
+        title = head.get("LocationName", "").strip()
+        if len(locs) > 1:
+            stems = {
+                loc.get("LocationName", "").split("—")[0].strip() for loc in locs
+            }
+            title = (
+                stems.pop()
+                if len(stems) == 1
+                else (_street_of(head.get("Address", "")) or title)
+            )
+
+        badge = (
+            f'<span style="background:{BG_SIDEBAR};color:{TEXT_MUTED};'
+            f"padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;"
+            f'text-transform:uppercase;margin-left:6px;">'
+            f'{_("loc_admin_badge")}</span>'
+            if is_admin
             else ""
         )
 
-        if e["own"]:
-            admin_pin = admin_pin or is_admin
-            chip = f'<span class="gwi-num gwi-num--own">{_ICON_PIN}</span>'
-            meta_bits = [_("loc_this_pin")] + (
-                [_("loc_programs_here").format(n=len(locs))] if len(locs) > 1 else []
+        if addr:
+            addr_html = (
+                f'<div style="color:{TEXT_MID};">{addr}</div>'
+                f'<a href="{_directions_url_address(head)}" target="_blank" '
+                f'style="color:{BRAND_MED};font-weight:600;text-decoration:none;">'
+                f'{_("loc_directions")} →</a>'
             )
-            progs = ""
-            if len(locs) > 1:
-                items = "".join(
-                    f'<div class="gwi-prog-li"><b>{_program_label(loc)}</b>'
+        else:
+            addr_html = (
+                f'<div style="color:{TEXT_MUTED};font-style:italic;">'
+                f'{_("loc_no_address")}</div>'
+            )
+
+        # One line per program at this address. A single-program site needs no
+        # program line — its name is already the card title.
+        prog_html = ""
+        if len(locs) > 1:
+            lines = []
+            for loc in locs:
+                name = loc.get("LocationName", "").strip()
+                label = name.split("—")[-1].strip() if "—" in name else name
+                svc = loc.get("ServicesHere", "").strip()
+                detail = " · ".join(
+                    x
+                    for x in (
+                        loc.get("Phone", "").strip(),
+                        "; ".join(_hours_lines(loc.get("Hours", ""))),
+                    )
+                    if x
+                )
+                # A building with several programmes (a clinic and its
+                # pharmacy, say) keeps its hours as one compact line — a full
+                # grid per programme would make these popups enormous — but
+                # still gets the badge, so you can see which counter is open.
+                badge = (
+                    _status_badge_html(_schedules(loc.get("Hours", "")), compact=True)
+                    if loc.get("Hours", "").strip()
+                    else ""
+                )
+                lines.append(
+                    f'<div style="margin-top:4px;">'
+                    f'<span style="font-weight:600;color:{TEXT_DARK};">{label}</span>'
                     + (
-                        f' — {loc["ServicesHere"].strip()}'
-                        if loc.get("ServicesHere", "").strip()
-                        and loc["ServicesHere"].strip().lower()
-                        != _program_label(loc).lower()
+                        f'<span style="color:{TEXT_MUTED};"> — {svc}</span>'
+                        if svc and svc.lower() != label.lower()
                         else ""
                     )
+                    + badge
                     + (
-                        f'<div class="gwi-muted">{"; ".join(_hours_lines(loc["Hours"]))}</div>'
-                        if loc.get("Hours", "").strip()
+                        f'<div style="color:{TEXT_MID};">{detail}</div>'
+                        if detail
                         else ""
                     )
                     + "</div>"
-                    for loc in locs
                 )
-                progs = (
-                    f'<details class="gwi-more gwi-progs"><summary>'
-                    f'{_("loc_programs_here").format(n=len(locs))}</summary>'
-                    f"<div>{items}</div></details>"
-                )
-            rows.append(
-                f'<div class="gwi-loc gwi-loc--static">{chip}<div class="gwi-loc-tx">'
-                f'<div class="gwi-loc-t">{title}{office}</div>'
-                f'<div class="gwi-loc-m">{" · ".join(meta_bits)}</div>{status}{progs}'
-                f"</div></div>"
-            )
-        elif e["num"] and key:
-            i = e["num"] - 1
-            act = (
-                f'role="button" tabindex="0" onclick="gwiGo(\'{key}\',{i})" '
-                f"onmouseenter=\"gwiHi('{key}',{i},1)\" "
-                f"onmouseleave=\"gwiHi('{key}',{i},0)\" "
-                f"onkeydown=\"if(event.key==='Enter')gwiGo('{key}',{i})\""
-            )
-            rows.append(
-                f'<div class="gwi-loc" {act}><span class="gwi-num">{e["num"]}</span>'
-                f'<div class="gwi-loc-tx"><div class="gwi-loc-t">{title}{office}</div>'
-                f'<div class="gwi-loc-m">{" · ".join(meta_bits)}</div>{status}</div>'
-                f'<span class="gwi-go">›</span></div>'
-            )
+            prog_html = "".join(lines)
         else:
-            # No coordinates: a hotline or an unlisted site. Listed, never pinned.
-            phone = head.get("Phone", "").strip()
-            addr = _addr_line(head)
-            where = (
-                _tel_link(phone)
-                if phone
-                else (addr or f'<i>{_("loc_no_address")}</i>')
-            )
-            rows.append(
-                f'<div class="gwi-loc gwi-loc--static">'
-                f'<span class="gwi-num gwi-num--off">{_ICON_PHONE}</span>'
-                f'<div class="gwi-loc-tx"><div class="gwi-loc-t">{title}{office}</div>'
-                f'<div class="gwi-loc-m">{" · ".join(x for x in (svc, where) if x)}</div>'
-                f"{status}</div></div>"
-            )
+            svc = head.get("ServicesHere", "").strip()
+            if svc:
+                prog_html += (
+                    f'<div style="color:{BRAND_DARK};font-size:11px;'
+                    f'font-weight:600;">{svc}</div>'
+                )
+            if head.get("Phone", "").strip():
+                prog_html += _tel_link(head["Phone"].strip())
+            if head.get("Hours", "").strip():
+                prog_html += _status_badge_html(
+                    _schedules(head["Hours"]), compact=True
+                ) + _hours_html(head["Hours"])
 
-    note = f'<div class="gwi-note">{_("loc_admin_note_map")}</div>' if admin_pin else ""
-    hint = f'<div class="gwi-hint">{_("loc_tap_hint")}</div>' if n_pins else ""
-    return (
-        f'<div class="gwi-sec">{_("popup_locations")} · {len(plan)}</div>'
-        f'{hint}{note}<div class="gwi-locs">{"".join(rows)}</div>'
-    )
-
-
-def _street_key(address: str) -> str:
-    """'60 Island St Suite 200' and '60 Island Street' -> '60 island street'."""
-    street = _street_of(address).split(",")[0].lower()
-    street = re.sub(r"\bst\b\.?", "street", street)
-    street = re.sub(r"\bave\b\.?", "avenue", street)
-    return re.sub(r"\s+", " ", street).strip()
-
-
-def _shared_buildings(rows: pd.DataFrame, meters: float = 25.0) -> list[list]:
-    """Groups of orgs whose pins sit on top of each other.
-
-    Everett Mills (15 Union Street) holds seven of these organisations and the
-    Island Street complex seven more. Drawn as separate pins, only the topmost
-    could ever be clicked — the rest were on the map but unreachable. Each such
-    group is drawn as one pin that lists who is there.
-
-    Two orgs join a group when their pins are within `meters`, or when they
-    give the same street address and are within 100 m (one address geocoded
-    twice, e.g. Neighbors in Need 50 m from its 60 Island Street neighbours).
-    Distance alone is not stretched further: at 60 m it starts merging separate
-    buildings on the same corner. Only groups of two or more are returned, as
-    lists of row indices.
-    """
-    pts = [
-        (idx, float(r["Latitude"]), float(r["Longitude"]),
-         _street_key(r["Address"]), str(r["City"]).strip().lower())
-        for idx, r in rows.iterrows()
-        if pd.notna(r["Latitude"]) and pd.notna(r["Longitude"])
-    ]
-    parent = {p[0]: p[0] for p in pts}
-
-    def find(x):
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
-
-    for i, (ia, la, oa, sa, ca) in enumerate(pts):
-        for ib, lb, ob, sb, cb in pts[i + 1:]:
-            dy = (la - lb) * 111_000
-            dx = (oa - ob) * 111_000 * 0.735  # cos(42.7°)
-            d2 = dx * dx + dy * dy
-            same_street = bool(sa) and sa == sb and ca == cb
-            if d2 <= meters * meters or (same_street and d2 <= 100 * 100):
-                parent[find(ia)] = find(ib)
-
-    groups: dict = {}
-    for idx, *_rest in pts:
-        groups.setdefault(find(idx), []).append(idx)
-    return [g for g in groups.values() if len(g) > 1]
-
-
-def _building_popup_html(bkey: str, members: list[tuple[str, object, int]]) -> str:
-    """Popup for a shared building: who is inside, each one tap away."""
-    first = members[0][1]
-    # The address most of them give, as they write it ("15 Union Street").
-    shorts = [_street_of(r["Address"]).split(",")[0].strip() for _k, r, _n in members]
-    street = max(set(shorts), key=lambda x: (shorts.count(x), len(x))) or first["Address"]
-    rows = []
-    for okey, r, n_places in sorted(members, key=lambda t: str(t[1]["Name"]).lower()):
-        state, status_txt = _group_status([{"Hours": str(r.get("Hours", ""))}])
-        meta = [x for x in (_org_type_label(r["OrgType"]),) if x]
-        if n_places > 1:
-            meta.append(_("pin_multi_short").format(n=n_places))
-        rows.append(
-            f'<div class="gwi-loc" role="button" tabindex="0" '
-            f"onclick=\"gwiOrg('{okey}')\" "
-            f"onkeydown=\"if(event.key==='Enter')gwiOrg('{okey}')\">"
-            f'<div class="gwi-loc-tx"><div class="gwi-loc-t">{r["Name"]}</div>'
-            f'<div class="gwi-loc-m">{" · ".join(meta)}</div>'
-            + (f'<div class="gwi-loc-s gwi-s-{state}">● {status_txt}</div>' if status_txt else "")
-            + '</div><span class="gwi-go">›</span></div>'
+        cards.append(
+            f'<div style="padding:7px 0;border-top:1px solid #e8eef5;">'
+            f'<div style="font-weight:700;color:{TEXT_DARK};">{title}{badge}</div>'
+            f'<div style="display:flex;flex-direction:column;gap:2px;'
+            f'margin-top:3px;">{addr_html}</div>'
+            f"{prog_html}</div>"
         )
-    directions = _directions_url(first["Latitude"], first["Longitude"])
+
+    # If the org's own pin is an office, say so — sites are listed here rather
+    # than plotted, so the pin itself cannot self-explain.
+    note = (
+        f'<div style="background:#fff6e5;border-left:3px solid #d9922e;'
+        f"padding:6px 8px;margin:6px 0;color:{TEXT_DARK};font-size:11px;"
+        f'line-height:1.4;">{_("loc_admin_note")}</div>'
+        if any(
+            loc.get("Kind", "") == "admin" for _k, locs in groups for loc in locs
+        )
+        else ""
+    )
+
+    # Folded away, and with no scroll box of its own: the popup body is now the
+    # single scrolling region, and a scroll area nested inside another one is
+    # exactly the thing that made these popups awkward to read.
+    hint = f" — {_('loc_on_map')}" if n_plotted else ""
     return (
-        f'<div class="gwi-pop">'
-        f'<div class="gwi-pop-hd">{street}'
-        f'<div class="gwi-pop-sub">{_("bldg_sub").format(n=len(members))}</div></div>'
-        f'<div class="gwi-pop-bd"><div class="gwi-hint" style="margin-top:0;">'
-        f'{_("bldg_hint")}</div><div class="gwi-locs">{"".join(rows)}</div></div>'
-        f'<div class="gwi-pop-ft"><a class="gwi-btn" style="background:{BRAND_DARK};" '
-        f'href="{directions}" target="_blank">{_("get_directions")}</a></div>'
-        f"</div>"
+        f'<div class="gwi-row"><div class="gwi-lbl"></div><div class="gwi-val">'
+        f"<details><summary>{_('popup_locations')} ({len(groups)}){hint}</summary>"
+        f'<div style="font-size:12px;">{note}{"".join(cards)}</div>'
+        f"</details></div></div>"
     )
 
 
-class _MapScript(MacroElement):
-    """Raw JavaScript emitted as a child of the map.
-
-    Not figure.script: streamlit-folium rebuilds the page from the map's own
-    children and drops the figure-level script block, so code parked there
-    never reaches the browser. As a map child it is carried along, and it
-    renders after every marker and layer added before it.
-    """
-
-    _template = Template("{% macro script(this, kwargs) %}{{ this.js }}{% endmacro %}")
-
-    def __init__(self, js: str):
-        super().__init__()
-        self._name = "GwiFocus"
-        self.js = js
-
-
-def _site_toggle_js(
-    m: folium.Map,
-    registry: list,
-    all_markers: list,
-    orgs: dict | None = None,
-    buildings: dict | None = None,
-) -> str:
+def _site_toggle_js(m: folium.Map, registry: list, all_markers: list) -> str:
     """Focus one organisation on click; restore the whole map on close.
 
-    Opening an org that runs several locations does three things: its other
-    locations appear as numbered pins joined to it by dashed lines, every other
-    organisation fades out, and a caption at the foot of the map names what is
-    being shown, with a "Show all" button. Focus stays on after the popup is
-    closed, so the locations can be seen without the popup covering them. The
-    popups' list rows and ‹ › buttons call gwiGo/gwiHi below.
+    Opening an org that runs several locations does two things: its other
+    locations appear, and every other organisation fades out. Six host churches
+    are impossible to read against 64 unrelated pins, and fading the rest is
+    cheaper to understand than any legend.
 
-    Returns raw JavaScript, not a <script> element: _MapScript places it inside
-    the map's own <script> block, and a nested tag there is a syntax error that
-    kills the map silently.
+    Returns raw JavaScript, not a <script> element: this goes into folium's
+    figure.script, which already wraps every child in one <script> block, and a
+    nested tag there is a syntax error that kills the map silently.
 
     Startup is a poll rather than a load listener. streamlit-folium injects the
     map with innerHTML and re-runs the scripts by hand, so the host page's load
@@ -1470,12 +1090,12 @@ def _site_toggle_js(
     appends its own JS during render.
     """
     entries, hooks = [], []
-    for key, marker, layer, bounds, org_name, site_markers in registry:
+    for i, (marker, layer, bounds, org_name) in enumerate(registry):
+        key = f"s{i}"
         pts = ",".join(f"[{lat},{lon}]" for lat, lon in bounds)
-        pins = ",".join(sm.get_name() for sm in site_markers)
         entries.append(
             f'"{key}":{{g:{layer.get_name()},b:[{pts}],m:{marker.get_name()},'
-            f"p:[{pins}],n:{len(site_markers) + 1},t:{json.dumps(org_name)}}}"
+            f"n:{len(bounds) - 1},t:{json.dumps(org_name)}}}"
         )
         hooks.append(f'{marker.get_name()}._gwiOrg="{key}";')
         hooks.append(
@@ -1483,20 +1103,15 @@ def _site_toggle_js(
         )
 
     pins = ",".join(mk.get_name() for mk in all_markers)
-    labels = json.dumps({"banner": _("focus_banner"), "all": _("focus_show_all")})
-    org_js = ",".join(f'"{k}":{mk.get_name()}' for k, mk in (orgs or {}).items())
-    bldg_js = ",".join(f'"{k}":{mk.get_name()}' for k, mk in (buildings or {}).items())
+    banner_label = _("focus_banner")
 
     return (
         "(function(){\n"
         "var tries=0;\n"
-        f"var LABEL={labels};\n"
         "function init(){\n"
         f"var map={m.get_name()};\n"
         "var SITES={" + ",".join(entries) + "};\n"
         "var PINS=[" + pins + "];\n"
-        "var ORGS={" + org_js + "};\n"
-        "var BLDG={" + bldg_js + "};\n"
         + "\n".join(hooks)
         + """
 // Start with every location layer off. Done here rather than through folium's
@@ -1507,23 +1122,15 @@ Object.keys(SITES).forEach(function (k) {
 
 var current = null;
 
-// Caption naming what is focused, with a way out. Pins appearing while others
+// A small caption so the change is legible: pins quietly appearing while others
 // vanish is easy to miss, especially for an org whose sites span three towns.
 var note = document.createElement('div');
 note.className = 'gwi-focusnote';
-note.innerHTML = '<span class="gwi-fn-t"></span>'
-  + '<button type="button" class="gwi-fn-x">\\u2715 ' + LABEL.all + '</button>';
 map.getContainer().appendChild(note);
-L.DomEvent.disableClickPropagation(note);
-note.querySelector('button').addEventListener('click', function () {
-  map.closePopup();
-  restore();
-});
 
 function paint(focusMarker) {
   PINS.forEach(function (pin) {
     if (!pin._icon) return;
-    if (focusMarker && pin !== focusMarker && pin.closeTooltip) pin.closeTooltip();
     pin._icon.classList.toggle('gwi-dim', !!focusMarker && pin !== focusMarker);
     pin._icon.classList.toggle('gwi-focus', pin === focusMarker);
   });
@@ -1536,7 +1143,7 @@ function restore() {
   note.classList.remove('is-on');
 }
 
-function focus(key, frame) {
+function focus(key) {
   var s = SITES[key];
   if (!s) { restore(); return; }
   if (current !== s) {
@@ -1545,104 +1152,54 @@ function focus(key, frame) {
     current = s;
   }
   paint(s.m);
-  note.querySelector('.gwi-fn-t').textContent =
-    LABEL.banner.replace('{org}', s.t).replace('{n}', s.n);
+  note.textContent = s.t
+    ? s.t + ' \u00b7 ' + LABEL.replace('{n}', s.n)
+    : LABEL.replace('{n}', s.n);
   note.classList.add('is-on');
-  if (frame && s.b.length) setTimeout(function () { frameAll(s, frame); }, 60);
+  if (!s.b.length) return;
+  var b = L.latLngBounds(s.b);
+  // Only move the map when something would otherwise be off-screen — a click
+  // that reframes the view for no reason is disorienting. The generous top
+  // padding leaves room for the popup, which opens above the pin.
+  if (!map.getBounds().pad(-0.06).contains(b)) {
+    setTimeout(function () {
+      map.fitBounds(b, {
+        paddingTopLeft: [44, 170],
+        paddingBottomRight: [44, 64],
+        maxZoom: 15,
+        animate: true,
+      });
+    }, 70);
+  }
 }
 
-// Bring every location into the part of the map the popup is not covering.
-// The popup opens above the pin and is most of the map's height, so a plain
-// fitBounds put half the locations underneath it. The popup's measured height
-// becomes the top padding; the map only moves if something is actually hidden.
-function frameAll(s, popup) {
-  var el = popup && popup._container;
-  var top = (el ? el.offsetHeight : 300) + 56;
-  var size = map.getSize();
-  var hidden = s.b.some(function (ll) {
-    var pt = map.latLngToContainerPoint(ll);
-    return pt.x < 30 || pt.x > size.x - 30 || pt.y < top || pt.y > size.y - 50;
-  });
-  if (!hidden) return;
-  map.fitBounds(L.latLngBounds(s.b), {
-    paddingTopLeft: [40, Math.min(top, Math.round(size.y * 0.55))],
-    paddingBottomRight: [40, 50],
-    maxZoom: 15,
-    animate: true,
-  });
-}
-
-// Called from popup HTML. i is a 0-based index into the numbered pins; -1 is
-// the organisation's own pin. Wraps, so ‹ › cycle through every location.
-window.gwiGo = function (key, i) {
-  var s = SITES[key];
-  if (!s) return;
-  focus(key, false);
-  var n = s.p.length;
-  var target = i < 0 ? s.m : s.p[((i % n) + n) % n];
-  if (!target) return;
-  if (target._icon) target._icon.classList.remove('gwi-hi');
-  target.openPopup();
-};
-
-// Lift the pin a list row points at, so the eye can find it.
-window.gwiHi = function (key, i, on) {
-  var s = SITES[key];
-  var t = s && s.p[i];
-  if (t && t._icon) t._icon.classList.toggle('gwi-hi', !!on);
-};
-
-// Shared buildings: an org inside one has its own pin hidden under the
-// building pin. Opening it from the building's list reveals that pin for as
-// long as its popup is open.
-window.gwiOrg = function (k) { var mk = ORGS[k]; if (mk) mk.openPopup(); };
-window.gwiB = function (k) { var mk = BLDG[k]; if (mk) mk.openPopup(); };
-
-var popupOpen = false;
+var openCount = 0;
 
 map.on('popupopen', function (e) {
-  popupOpen = true;
+  openCount++;
   var src = e.popup._source;
   if (!src) return;
-  if (src._icon) src._icon.classList.add('gwi-open');
-  // The hover card would sit over the list. On touch screens Leaflet opens it
-  // on tap, after this handler, so close it again on the next tick too.
-  if (src.closeTooltip) {
-    src.closeTooltip();
-    setTimeout(function () { src.closeTooltip(); }, 0);
-  }
-  if (src._gwiOrg) focus(src._gwiOrg, e.popup);
-  else if (src._gwiSat) focus(src._gwiSat, null); // one of the focused org's sites
-  else restore();                                  // an org with no other locations
+  if (src._gwiOrg) focus(src._gwiOrg);
+  else if (src._gwiSat) focus(src._gwiSat);   // one of the focused org's sites
+  else restore();                             // an org with no other locations
 });
 
-// Focus outlives the popup on purpose. The popup covers part of the map, so
-// closing it (its x, or Esc) is how you look at all of the locations at once.
-// Leaving focus is explicit: "Show all", a click on empty map, or Esc again.
-map.on('click', restore);
-
-// With the popup gone the whole map is free, so spread the locations over it.
-// Deferred a tick: stepping from the org to one of its locations closes one
-// popup and opens the next, and that handover must not trigger a reframe.
-map.on('popupclose', function (e) {
-  popupOpen = false;
-  var src = e.popup && e.popup._source;
-  if (src && src._icon) src._icon.classList.remove('gwi-open');
+// Clicking a location closes the org popup and opens its own, so the focus has
+// to survive that handover — restore only once nothing is left open.
+// Counted rather than read off the DOM: Leaflet fades a popup out before
+// removing the element, so checking for .leaflet-popup races the animation and
+// the map would stay stuck in focus mode. The next-tick defer lets the
+// close/open pair from that handover settle before we decide.
+map.on('popupclose', function () {
+  openCount = Math.max(0, openCount - 1);
   setTimeout(function () {
-    if (popupOpen || !current || !current.b.length) return;
-    current.m.closeTooltip();   // a tap can leave it stuck open over the pins
-    map.fitBounds(L.latLngBounds(current.b), {
-      paddingTopLeft: [50, 50],
-      paddingBottomRight: [50, 70],
-      maxZoom: 15,
-      animate: true,
-    });
+    if (openCount === 0) restore();
   }, 0);
 });
-document.addEventListener('keydown', function (ev) {
-  if (ev.key === 'Escape' && current && !document.querySelector('.leaflet-popup')) restore();
-});
 }
+"""
+        + f'var LABEL={banner_label!r};\n'.replace("'", '"')
+        + """
 // Poll until folium has defined the map and the layers. init() builds its
 // references first, so a premature call throws before attaching anything and
 // is safe to retry.
@@ -1658,106 +1215,48 @@ document.addEventListener('keydown', function (ev) {
     )
 
 
-def _site_popup_html(org_name: str, key: str, e: dict, n_pins: int) -> str:
-    """Popup for one numbered location.
-
-    Every programme in the building is shown — a health-centre site's clinic and
-    pharmacy keep separate hours, and showing only the first hid the second.
-    The header links back to the organisation; ‹ › step to the next location
-    without returning to the list.
-    """
-    locs, head = e["locs"], e["locs"][0]
-    i = e["num"] - 1
-    title = _group_title(locs)
-    addr = _addr_line(head)
-
-    if len(locs) == 1:
-        hours = head.get("Hours", "").strip()
-        body = (
-            _status_badge_html(_schedules(hours))
-            + f'<div class="gwi-today">{_hours_today_html(hours)}</div>'
-            if hours
-            else f'<div class="gwi-muted gwi-small"><i>{_("status_unknown")}</i></div>'
-        )
-        svc = head.get("ServicesHere", "").strip()
-        if svc:
-            body += _chips_html([svc])
-    else:
-        body = ""
-        for loc in locs:
-            h = loc.get("Hours", "").strip()
-            svc = loc.get("ServicesHere", "").strip()
-            label = _program_label(loc)
-            body += (
-                f'<div class="gwi-prog"><div class="gwi-prog-t">{label}'
-                + (
-                    f'<span class="gwi-muted"> — {svc}</span>'
-                    if svc and svc.lower() != label.lower()
-                    else ""
-                )
-                + "</div>"
-                + (
-                    _status_badge_html(_schedules(h))
-                    + f"<details><summary>{_('popup_hours')}</summary>"
-                    f"<div>{_hours_html(h)}</div></details>"
-                    if h
-                    else f'<div class="gwi-muted gwi-small"><i>{_("status_unknown")}</i></div>'
-                )
-                + "</div>"
-            )
-
-    body += _info_line(_ICON_PIN, addr) if addr else ""
-    phones = list(dict.fromkeys(l.get("Phone", "").strip() for l in locs if l.get("Phone", "").strip()))
-    for p in phones:
-        body += _info_line(_ICON_PHONE, _tel_link(p))
-
-    nav = ""
-    if n_pins > 1:
-        nav = (
-            f'<span class="gwi-nav">'
-            f'<button type="button" onclick="gwiGo(\'{key}\',{i - 1})" aria-label="Previous">‹</button>'
-            f"<span>{e['num']} / {n_pins}</span>"
-            f'<button type="button" onclick="gwiGo(\'{key}\',{i + 1})" aria-label="Next">›</button>'
-            f"</span>"
-        )
-    foot = (
-        f'<a class="gwi-btn" style="background:{BRAND_DARK};" '
-        f'href="{_directions_url_address(head)}" target="_blank">{_("get_directions")}</a>'
-        if addr
-        else f'<span class="gwi-muted gwi-small">{_("loc_no_address")}</span>'
-    ) + nav
-
-    return (
-        f'<div class="gwi-pop gwi-pop--site">'
-        f'<div class="gwi-pop-hd"><div class="gwi-hd-row">'
-        f'<span class="gwi-num gwi-num--hd">{e["num"]}</span><span>{title}</span></div>'
-        f'<a class="gwi-pop-sub gwi-back" onclick="gwiGo(\'{key}\',-1)">'
-        f"↩ {org_name}</a></div>"
-        f'<div class="gwi-pop-bd">{body}</div>'
-        f'<div class="gwi-pop-ft">{foot}</div>'
-        f"</div>"
-    )
-
-
 def _site_layer(
     m: folium.Map,
     org_row,
-    plan: list[dict],
-    key: str,
-) -> tuple[folium.FeatureGroup | None, list[list[float]], list[folium.Marker]]:
+    groups: list[tuple[str, list[dict]]],
+) -> tuple[folium.FeatureGroup | None, list[list[float]]]:
     """A hidden layer of an org's other locations, shown when its pin is opened.
 
-    Drawing every org's locations all the time would bury the other 57 orgs, so
-    each org's sit in their own layer that stays off until asked for. Each
-    location is tied back to the org's own pin by a faint dashed line — the
-    quickest way to show "these belong together" without a legend.
+    These were listed in the popup but never drawn, so a food pantry operating
+    out of six host churches showed as one pin on an office. Drawing all of them
+    all the time is the opposite failure — they would bury the other 57 orgs —
+    so each org's locations sit in their own layer that stays off until asked
+    for, and every other org is faded out while it is on.
 
-    Returns the layer, the points it covers (the org's own pin included) so the
-    caller can frame them, and the numbered markers in order.
+    The locations use the same teardrop pin as the organisation itself: they are
+    the same kind of thing, and a second marker style made the map look busy.
+
+    Returns the layer and the points it covers (the org's own pin included) so
+    the caller can frame them.
     """
-    pinned = [e for e in plan if e["num"]]
-    if not pinned:
-        return None, [], []
+    # The org's own pin already stands for its own address, so that site would
+    # otherwise be drawn twice. Compared by street address rather than by
+    # distance: Lazarus House's soup kitchen is a genuinely separate place 40 m
+    # from its office, and a distance test would wrongly swallow it.
+    own = (
+        _street_of(org_row["Address"]).lower(),
+        str(org_row["City"]).strip().lower(),
+    )
+
+    plotted = []
+    for g in groups:
+        head = g[1][0]
+        coords = _site_coords(head)
+        if not coords:
+            continue
+        if (
+            _street_of(head.get("Address", "")).lower(),
+            head.get("City", "").strip().lower(),
+        ) == own:
+            continue
+        plotted.append((g, coords))
+    if not plotted:
+        return None, []
 
     layer = folium.FeatureGroup(name=f"sites::{org_row['Name']}", control=False)
     try:
@@ -1766,47 +1265,93 @@ def _site_layer(
         origin = None
     bounds: list[list[float]] = [origin] if origin else []
 
-    # Lines first, so the pins sit on top of them.
-    if origin:
-        for e in pinned:
-            folium.PolyLine(
-                [origin, list(e["coords"])],
-                color=BRAND_MED,
-                weight=2,
-                opacity=0.55,
-                dash_array="5 6",
-                interactive=False,
-            ).add_to(layer)
-
-    markers = []
-    for e in pinned:
-        lat, lon = e["coords"]
+    for (_key, locs), (lat, lon) in plotted:
+        head = locs[0]
         bounds.append([lat, lon])
-        head = e["locs"][0]
-        title = _group_title(e["locs"])
-        svc = head.get("ServicesHere", "").strip() if len(e["locs"]) == 1 else ""
-        mk = folium.Marker(
+
+        addr = ", ".join(
+            x
+            for x in (head.get(k, "").strip() for k in ("Address", "City", "State", "Zip"))
+            if x
+        )
+        svc = head.get("ServicesHere", "").strip()
+        site_hours = head.get("Hours", "").strip()
+        site_phone = head.get("Phone", "").strip()
+
+        # Same three-part card as an org popup — fixed header, scrolling body,
+        # pinned action — so a site never opens as an unpadded, clipped box.
+        body = (
+            f"{_status_badge_html(_schedules(site_hours))}{_hours_today_html(site_hours)}"
+            if site_hours
+            else f'<div class="gwi-muted" style="font-size:11px;font-style:italic;'
+            f'margin:1px 0 5px;">{_("status_unknown")}</div>'
+        )
+        if svc:
+            body += (
+                f'<div class="gwi-row"><div class="gwi-lbl">{_("popup_services")}</div>'
+                f'<div class="gwi-val gwi-mid">{svc}</div></div>'
+            )
+        if addr:
+            body += (
+                f'<div class="gwi-row"><div class="gwi-lbl">{_("popup_address")}</div>'
+                f'<div class="gwi-val">{addr}</div></div>'
+            )
+        else:
+            body += (
+                f'<div class="gwi-row"><div class="gwi-lbl"></div>'
+                f'<div class="gwi-val gwi-muted" style="font-style:italic;">'
+                f'{_("loc_no_address")}</div></div>'
+            )
+        if site_phone:
+            body += (
+                f'<div class="gwi-row"><div class="gwi-lbl">{_("popup_phone")}</div>'
+                f'<div class="gwi-val">{_tel_link(site_phone)}</div></div>'
+            )
+
+        foot = (
+            f'<a class="gwi-btn" style="background:{BRAND_DARK};" '
+            f'href="{_directions_url_address(head)}" target="_blank">'
+            f'{_("get_directions")}</a>'
+            if addr
+            else f'<span class="gwi-muted" style="font-size:11px;">'
+            f'{_("loc_no_address")}</span>'
+        )
+
+        # The parent org is named in the header: a lone dot gives no clue whose
+        # site it is once the org's own popup has closed.
+        site_html = (
+            f'<div class="gwi-pop gwi-pop--site">'
+            f'<div class="gwi-pop-hd">{head.get("LocationName", "").strip()}'
+            f'<div class="gwi-pop-sub">{org_row["Name"]}</div></div>'
+            f'<div class="gwi-pop-bd">{body}</div>'
+            f'<div class="gwi-pop-ft">{foot}</div>'
+            f"</div>"
+        )
+
+        folium.Marker(
             location=[lat, lon],
             tooltip=folium.Tooltip(
-                f'<div class="gwi-tt"><b>{e["num"]} · {title}</b>'
-                + (f"<span>{svc}</span>" if svc else "")
-                + "</div>"
+                f'<div style="font-family:{FONT_STACK};font-size:12px;'
+                f'font-weight:700;color:{BRAND_DARK};max-width:190px;">'
+                f'{head.get("LocationName", "").strip()}</div>'
+                + (
+                    f'<div style="font-family:{FONT_STACK};font-size:11px;'
+                    f'color:{TEXT_MUTED};max-width:190px;">{svc}</div>'
+                    if svc
+                    else ""
+                )
             ),
-            popup=folium.Popup(
-                _site_popup_html(org_row["Name"], key, e, len(pinned)), max_width=300
-            ),
+            popup=folium.Popup(site_html, max_width=280),
             icon=folium.DivIcon(
-                html=_pin_svg(BRAND_MED, fade=True, number=str(e["num"])),
+                html=_pin_svg(BRAND_MED, fade=True),
                 icon_size=(25, 41),
                 icon_anchor=(12, 41),
                 popup_anchor=(0, -38),
             ),
-        )
-        mk.add_to(layer)
-        markers.append(mk)
+        ).add_to(layer)
 
     layer.add_to(m)
-    return layer, bounds, markers
+    return layer, bounds
 
 
 def _tel_link(phone: str) -> str:
@@ -2005,11 +1550,9 @@ with st.sidebar:
     )
     st.divider()
 
-    # The search box itself is drawn on the page, above the tabs — on a phone
-    # the sidebar starts collapsed, and search is the one control everyone
-    # needs. The value is read here so the filters below can use it.
-    st.session_state.setdefault("search", "")
-    search = st.session_state["search"]
+    search = st.text_input(
+        _("search_label"), placeholder=_("search_placeholder"), key="search"
+    )
 
     # Options come from the data, not from the full taxonomy, so a tag no org
     # offers is never a dead end. Ordered by category (see sort_key) so the
@@ -2118,19 +1661,11 @@ if search:
     # Stem-aware matching with a small alias list — see search_utils.py.
     # Plain substring matching missed "diapers" against "Diaper Distribution"
     # and treated ESL/ESOL as unrelated.
-    # Each org's canonical service tags and categories are searched too, in
-    # English and Spanish, so a Spanish speaker typing "comida" or "vivienda"
-    # finds what an English speaker finds with "food" or "housing". Accents are
-    # folded both ways: phone keyboards often drop them ("ingles", "credito").
     def _row_matches(row) -> bool:
-        tags = row["SvcCanonical"]
         blob = " ".join(
-            [str(row[c]) for c in ("Name", "ServiceArea", "Services", "City")]
-            + list(tags)
-            + [TAGS[t][1] for t in tags if t in TAGS]
-            + [category_label(c, "es") for c in row["Categories"]]
+            str(row[c]) for c in ("Name", "ServiceArea", "Services", "City")
         )
-        return _search_matches(_fold(search), _fold(blob))
+        return _search_matches(search, blob)
 
     filtered = filtered[filtered.apply(_row_matches, axis=1)]
 
@@ -2235,7 +1770,6 @@ with hdr_r:
         f'text-decoration:none;{feedback_extra}">'
         f"{_('feedback_cta')}</a>"
         f'<a href="{GEMINI_GEM_URL}" target="_blank" rel="noopener noreferrer" '
-        f'title="{_("nav_cta_help")}" '
         f'style="display:inline-flex;align-items:center;gap:8px;'
         f"background:{BRAND_MED};color:white;"
         f"padding:11px 18px;border-radius:8px;font-size:14px;font-weight:700;"
@@ -2243,13 +1777,6 @@ with hdr_r:
         f"{_('nav_cta')} ↗</a></div>",
         unsafe_allow_html=True,
     )
-
-st.text_input(
-    _("search_label"),
-    placeholder=_("search_placeholder_main"),
-    key="search",
-    label_visibility="collapsed",
-)
 
 st.divider()
 
@@ -2279,16 +1806,10 @@ with tab_map:
         (key, tags) for key, tags in QUICK_FILTERS if available.intersection(tags)
     ]
 
-    # Keyed so the phone stylesheet can find it; older Streamlit has no key
-    # here, and the chips then just keep the default stacking.
-    try:
-        chips_box = st.container(key="gwi_chips")
-    except TypeError:
-        chips_box = st.container()
     for chip_row in (live_chips[:4], live_chips[4:]):
         if not chip_row:
             continue
-        for col, (key, tags) in zip(chips_box.columns(len(chip_row)), chip_row):
+        for col, (key, tags) in zip(st.columns(len(chip_row)), chip_row):
             with col:
                 col.button(
                     _(key),
@@ -2347,67 +1868,71 @@ with tab_map:
             ).add_to(boundary_group)
             boundary_group.add_to(m)
 
-        # (key, org marker, its hidden site layer, points to frame, name, numbered
-        # site markers) — consumed after the loop to emit the JS that toggles them.
+        # (org marker, its hidden site layer, points to frame) — consumed after
+        # the loop to emit the JS that toggles them.
         site_registry: list[
-            tuple[str, folium.Marker, folium.FeatureGroup, list, str, list]
+            tuple[folium.Marker, folium.FeatureGroup, list, str]
         ] = []
         # Every org pin, so focus mode knows what to fade.
         all_org_markers: list[folium.Marker] = []
-
-        # Orgs sharing one building get one building pin between them.
-        bldg_of: dict = {}
-        for bi, members in enumerate(_shared_buildings(map_data)):
-            for idx in members:
-                bldg_of[idx] = (f"b{bi}", len(members))
-        bldg_members: dict[str, list] = {}
-        org_keys: dict[str, folium.Marker] = {}
 
         for _idx, row in map_data.iterrows():
             # single pin colour — the category legend is gone from the UI, so
             # per-category colours would have nothing to decode them
             pin_color = BRAND_MED
-            org_type = _org_type_label(row["OrgType"])
+            svc_tags = row["Services"] or _("not_specified")
+            org_type = _org_type_label(row["OrgType"]) or _("not_specified")
             url = row["URL"]
+
             impact = row.get("ImpactReport", "")
             strategic = row.get("StrategicPlan", "")
+
+            # Phone/hours are only filled in for a handful of orgs so far —
+            # skip the row entirely rather than showing an empty field.
             phone = str(row.get("Phone", "")).strip()
             hours = str(row.get("Hours", "")).strip()
+            def _row(label, value, cls="gwi-val"):
+                return (
+                    f'<div class="gwi-row"><div class="gwi-lbl">{label}</div>'
+                    f'<div class="{cls}">{value}</div></div>'
+                )
 
-            # Status leads — it is what the pin is usually clicked for — then
-            # where and how to reach them. Icons stand in for the old label
-            # column, which spent a third of the popup's width on "Address".
-            today_html = _hours_today_html(hours)
-            checked = _checked_date(row.get("HoursVerifiedOn", "")) if hours else ""
-            body_html = _status_badge_html(_schedules(hours)) + (
-                f'<div class="gwi-today">{today_html}</div>' if today_html else ""
-            ) + (
-                # A wrong "open" is worse than no badge, so say how fresh it is.
-                f'<div class="gwi-checked">{_("hours_source").format(d=checked)}</div>'
-                if checked
-                else ""
-            )
-            body_html += _info_line(
-                _ICON_PIN, f"{row['Address']}, {row['City']}, {row['State']}"
+            rows_html = _row(
+                _("popup_address"),
+                f"{row['Address']}, {row['City']}, {row['State']}",
             )
             if phone:
-                body_html += _info_line(_ICON_PHONE, _tel_link(phone))
+                rows_html += _row(_("popup_phone"), _tel_link(phone))
 
-            key = f"s{_idx}"
-            plan = _site_plan(row, _group_by_address(_org_locations(row["Name"])))
-            site_layer, site_bounds, site_markers = _site_layer(m, row, plan, key)
+            hours_block = _hours_today_html(hours)
+            status_html = _status_badge_html(_schedules(hours))
+            # Status and hours lead the body — they are what the pin is being
+            # clicked for — with the badge sitting above the label grid.
+            body_html = status_html
+            if hours_block:
+                body_html += _row(_("popup_hours"), hours_block)
+            body_html += rows_html
+            body_html += _row(_("popup_type"), org_type)
 
-            # An org with several places leads with them — that list is what
-            # the numbered pins are keyed to. Services follow.
-            body_html += _locations_html(
-                plan, key if site_layer is not None else None, len(site_markers)
-            )
+            # Services is the longest field by far (one org lists nine). Folded
+            # away past a few entries so it cannot dominate the popup.
             svc_items = _smart_split(row.get("Services", ""))
-            if svc_items:
-                body_html += (
-                    f'<div class="gwi-sec">{_("popup_services")}</div>'
-                    + _chips_html(svc_items, keep=3 if plan else 4)
+            if len(svc_items) > 3:
+                svc_val = (
+                    f'<details><summary>{_("popup_services")} ({len(svc_items)})'
+                    f'</summary><div class="gwi-mid">{svc_tags}</div></details>'
                 )
+                body_html += f'<div class="gwi-row"><div class="gwi-lbl"></div>{svc_val}</div>'
+            else:
+                body_html += _row(_("popup_services"), svc_tags, "gwi-val gwi-mid")
+
+            site_groups = _group_by_address(_org_locations(row["Name"]))
+            site_layer, site_bounds = _site_layer(m, row, site_groups)
+            locs_html = _locations_html(
+                site_groups, n_plotted=len(site_bounds) - 1 if site_bounds else 0
+            )
+            if locs_html:
+                body_html += locs_html
 
             reports = []
             if str(impact).strip():
@@ -2415,7 +1940,9 @@ with tab_map:
             if str(strategic).strip():
                 reports.append(f'{_("popup_strategic")}: {_link_cell(strategic)}')
             if reports:
-                body_html += f'<div class="gwi-reports">{" · ".join(reports)}</div>'
+                body_html += f'<div class="gwi-row"><div class="gwi-lbl"></div>' \
+                             f'<div class="gwi-val" style="font-size:11px;">' \
+                             f'{" · ".join(reports)}</div></div>'
 
             directions_url = _directions_url(row["Latitude"], row["Longitude"])
             action_html = (
@@ -2429,93 +1956,51 @@ with tab_map:
                 )
             else:
                 action_html += (
-                    f'<span class="gwi-muted gwi-small">{_("no_website_listed")}</span>'
+                    f'<span class="gwi-muted" style="font-size:11px;">'
+                    f'{_("no_website_listed")}</span>'
                 )
 
-            sub = f'<div class="gwi-pop-sub">{org_type}</div>' if org_type else ""
-            bkey, bcount = bldg_of.get(_idx, (None, 0))
-            if bkey:
-                sub += (
-                    f'<a class="gwi-pop-sub gwi-back" onclick="gwiB(\'{bkey}\')">'
-                    f'↩ {_("bldg_back").format(n=bcount)}</a>'
-                )
             popup_html = (
                 f'<div class="gwi-pop">'
-                f'<div class="gwi-pop-hd">{row["Name"]}{sub}</div>'
+                f'<div class="gwi-pop-hd">{row["Name"]}</div>'
                 f'<div class="gwi-pop-bd">{body_html}</div>'
                 f'<div class="gwi-pop-ft">{action_html}</div>'
                 f"</div>"
             )
 
-            n_places = len(site_markers) + 1
-            tooltip_html = f'<div class="gwi-tt"><b>{row["Name"]}</b>' + (
-                f'<span>{_("pin_multi_hint").format(n=n_places)}</span>'
-                if site_markers
-                else ""
-            ) + "</div>"
+            tooltip_html = (
+                f'<div style="font-family:{FONT_STACK};font-size:14px;'
+                f'font-weight:700;color:{BRAND_DARK};max-width:200px;">{row["Name"]}</div>'
+            )
 
+            pin_svg = _pin_svg(pin_color)
             org_marker = folium.Marker(
                 location=[row["Latitude"], row["Longitude"]],
                 popup=folium.Popup(popup_html, max_width=360),
                 tooltip=folium.Tooltip(tooltip_html),
                 icon=folium.DivIcon(
-                    html=_pin_svg(pin_color, count=n_places if site_markers else 0),
+                    html=pin_svg,
                     icon_size=(25, 41),
                     icon_anchor=(12, 41),
                     popup_anchor=(0, -38),
-                    # Hidden under its building's pin until opened from it.
-                    class_name="empty gwi-stacked" if bkey else "empty",
                 ),
             )
             org_marker.add_to(m)
             all_org_markers.append(org_marker)
-            if bkey:
-                okey = f"o{_idx}"
-                org_keys[okey] = org_marker
-                bldg_members.setdefault(bkey, []).append((okey, row, n_places))
             if site_layer is not None:
                 site_registry.append(
-                    (key, org_marker, site_layer, site_bounds, row["Name"], site_markers)
+                    (org_marker, site_layer, site_bounds, row["Name"])
                 )
-
-        bldg_markers: dict[str, folium.Marker] = {}
-        for bkey, members in bldg_members.items():
-            first = members[0][1]
-            names = sorted(str(r["Name"]) for _k, r, _n in members)
-            shown = "".join(f"<span>{n}</span>" for n in names[:4])
-            if len(names) > 4:
-                shown += f'<span>{_("more_n").format(n=len(names) - 4)}</span>'
-            bm = folium.Marker(
-                location=[first["Latitude"], first["Longitude"]],
-                popup=folium.Popup(_building_popup_html(bkey, members), max_width=360),
-                tooltip=folium.Tooltip(
-                    f'<div class="gwi-tt"><b>{_("bldg_sub").format(n=len(members))}</b>'
-                    f"{shown}</div>"
-                ),
-                icon=folium.DivIcon(
-                    html=_pin_svg(BRAND_DARK, solid_number=str(len(members))),
-                    icon_size=(25, 41),
-                    icon_anchor=(12, 41),
-                    popup_anchor=(0, -38),
-                ),
-            )
-            bm.add_to(m)
-            bldg_markers[bkey] = bm
-            all_org_markers.append(bm)   # faded with the rest in focus mode
 
         folium.LayerControl(collapsed=True).add_to(m)
 
-        if site_registry or bldg_markers:
-            _MapScript(
-                _site_toggle_js(
-                    m, site_registry, all_org_markers, org_keys, bldg_markers
-                )
-            ).add_to(m)
+        if site_registry:
+            m.get_root().script.add_child(
+                folium.Element(_site_toggle_js(m, site_registry, all_org_markers))
+            )
 
         st_folium(m, use_container_width=True, height=620, returned_objects=[])
         st.caption(_("map_caption").format(n=len(map_data)))
-        if FEEDBACK_FORM_URL:
-            st.caption(f"[{_('missing_org')}]({FEEDBACK_FORM_URL})")
         # The badges are computed once per rerun, so a tab left open overnight
         # would otherwise show yesterday's answer with nothing to say so.
         _as_of = _now_local()

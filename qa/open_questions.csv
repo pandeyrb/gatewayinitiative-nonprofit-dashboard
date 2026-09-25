@@ -1,0 +1,11 @@
+Org,Question,Answer
+Bread and Roses Housing,"MERGED into Centro de Apoyo Familiar (CAF); brhousing.org redirects. Keep, relabel, or remove from the dashboard?","STILL OPEN: brhousing.org still redirects; merged into Centro de Apoyo Familiar. Keep, relabel or remove?"
+Lawrence Prospera- Quintana Center,CSV address 404 Haverhill St; their site lists 404 as the former JCC Gym and Quintana at 580 Haverhill St. Which is right?,RESOLVED 2026-09-24: their locations page puts the Maria del Pilar Quintana Center at 580 Haverhill St; 404 Haverhill St is the former JCC Gym (SISU Basketball). CSV updated to 580.
+Neighbors in Need,"Phone conflict: CSV has (978) 685-8321, needfood.org publishes (978) 699-3683. Which is current?","RESOLVED 2026-09-24: needfood.org now publishes (978) 685-8321, matching the CSV. No change needed."
+Lawrence Boys and Girls Club,Their site says 'two facilities in the city' but publishes only 136 Water St. What is the second address?,STILL OPEN: site still publishes only 136 Water St. Tracked in qa/geo_review.csv.
+Eliot Community Human Services,No Lawrence-specific phone published; only Lexington HQ (781) 861-0890. Is there a local number for 248 Broadway?,STILL OPEN: eliotchs.org locations page returns 404; no Lawrence-specific number found. Coordinates for 248 Broadway were corrected.
+The Community Group,Site blocks automated fetch. Needs a manual browser check for phone/hours.,"RESOLVED 2026-09-24: contact page fetched; phone 978-682-6628 confirmed, no hours published."
+St. Mary's Parish,Site blocks automated fetch. Needs a manual browser check for phone/hours.,STILL OPEN: site returns HTTP 403 to automated fetch. Needs a manual browser check.
+The Psychological Center,Own contact page is gone (HTTP 410). Aggregators list (978) 291-2262 — unconfirmed.,"STILL OPEN: no website on file, own contact page HTTP 410. (978) 291-2262 remains unconfirmed."
+ACT Lawrence,"No phone published anywhere on their site. Confirm none exists, or supply one.",STILL OPEN: actlawrence.org publishes no hours and no phone. CSV phone (978) 685-6274 is from another source.
+St. Patrick's Catholic Church,No phone on site. Also: affiliated Cor Unum Meal Center may deserve its own entry.,PARTLY RESOLVED 2026-09-24: Mass and confession schedule added to Hours. Phone still not on site; Cor Unum Meal Center still worth its own entry.
