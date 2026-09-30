@@ -1,10 +1,15 @@
 [theme]
 base                = "light"
-primaryColor        = "#1e3a5f"
-backgroundColor     = "#ffffff"
-secondaryBackgroundColor = "#f0f4f8"
-textColor           = "#1e293b"
-font                = "sans serif"
+primaryColor        = "#1c6660"
+backgroundColor     = "#f4f7f7"
+secondaryBackgroundColor = "#eaf0f0"
+textColor           = "#13232a"
+borderColor         = "#dde6e7"
+font                = "'Atkinson Hyperlegible Next', sans-serif"
+baseRadius          = "10px"
+
+[client]
+toolbarMode = "minimal"
 
 [server]
 enableCORS = false

@@ -691,20 +691,36 @@ def sort_key(tag: str) -> tuple[int, str]:
 #
 # Lives here rather than in app.py so the validator can import it without
 # booting Streamlit.
-QUICK_FILTERS: list[tuple[str, list[str]]] = [
-    ("quick_food_pantry", ["Food Pantry"]),
-    ("quick_meals", ["Community Meals"]),
-    ("quick_shelter", ["Emergency Shelter"]),
-    ("quick_housing", ["Rental Assistance & Tenant Rights", "Foreclosure Prevention"]),
-    ("quick_health", ["Primary & Walk-In Care", "Health Insurance Enrollment"]),
-    ("quick_immigration", ["Immigration Legal Services", "Citizenship & Naturalization"]),
-    ("quick_childcare", ["Child Care & Early Education"]),
-    ("quick_jobs", ["Job Placement & Career Services", "Vocational & Trade Training"]),
+QUICK_FILTERS: list[tuple[str, list[tuple[str, str]]]] = [
+    ("quick_food", [
+        ("Food Assistance", "Food Pantry"),
+        ("Food Assistance", "Free Meals"),
+        ("Food Assistance", "Mobile Food Distribution"),
+    ]),
+    ("quick_housing", [
+        ("Homelessness & Emergency Shelter", "Emergency Shelter"),
+        ("Homelessness & Emergency Shelter", "Transitional Housing"),
+        ("Homebuyers and Renters Assistance", "Rent Help & Tenant Counseling"),
+        ("Homebuyers and Renters Assistance", "Foreclosure Prevention"),
+    ]),
+    ("quick_health", [
+        ("Health Care (Clinical)", "Primary & Walk-in Care"),
+        ("Health Care (Clinical)", "Hospital & Emergency Care"),
+        ("Health Care (Clinical)", "Children's Health"),
+        ("Health Care (Clinical)", "Women's Health & Pregnancy"),
+        ("Health Care (Clinical)", "Health Insurance Help"),
+    ]),
+    ("quick_immigration", [
+        ("Legal & Immigration", "Immigration Legal Help"),
+        ("Legal & Immigration", "Citizenship Classes & Applications"),
+    ]),
+    ("quick_jobs", [
+        ("Employment & Workforce Training", "Job Search Help"),
+        ("Employment & Workforce Training", "Job Training & Certificates"),
+        ("Employment & Workforce Training", "Trades & Apprenticeships"),
+        ("Employment & Workforce Training", "Health & Care Careers"),
+    ]),
 ]
-
-_bad_chips = {t for _k, tags in QUICK_FILTERS for t in tags if t not in TAGS}
-if _bad_chips:
-    raise ValueError(f"QUICK_FILTERS reference unknown tags: {sorted(_bad_chips)}")
 
 
 def tag_label(tag: str, lang: str = "en") -> str:
@@ -771,17 +787,77 @@ if _bad:
     raise ValueError(f"service_categories.csv names unknown categories: {sorted(_bad)}")
 
 
+# ── specific services ─────────────────────────────────────────────────────────
+# data/specific_services.csv groups every raw service under a plain-language
+# specific service inside each of its categories: "Food Pantry", "Food Pantry
+# Services" and "Emergency Food Pantry" are all "Food Pantry". It follows the
+# draft's category assignments exactly (scripts/check_specific_services.py
+# enforces that) and also covers services added to the data after the draft,
+# marked Source=added-YYYY-MM-DD for review. It is meant to be edited by hand.
+#
+# Only 17 of the ~485 raw services are offered by more than one organization,
+# so filtering on raw names would make every choice a list of one; the grouping
+# is what makes a specific-service filter useful.
+_SPECIFIC_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "data", "specific_services.csv")
+
+
+def _load_specifics():
+    by_raw: dict[str, list[tuple[str, str]]] = {}
+    es: dict[tuple[str, str], str] = {}
+    order: dict[str, list[str]] = {}
+    if not os.path.exists(_SPECIFIC_CSV):
+        return by_raw, es, order
+    with open(_SPECIFIC_CSV, newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            cat = row["Category"].strip()
+            spec = row["SpecificService"].strip()
+            by_raw.setdefault(_normalize(row["RawService"]).lower(), []).append((cat, spec))
+            if spec:
+                es[(cat, spec)] = row.get("SpecificService_es", "").strip() or spec
+                if spec not in order.setdefault(cat, []):
+                    order[cat].append(spec)
+    return by_raw, es, order
+
+
+SPECIFIC_BY_RAW, SPECIFIC_ES, SPECIFIC_ORDER = _load_specifics()
+
+_bad = {c for pairs in SPECIFIC_BY_RAW.values() for c, _s in pairs if c not in CATEGORY_ORDER}
+if _bad:
+    raise ValueError(f"specific_services.csv names unknown categories: {sorted(_bad)}")
+_bad = {p for _k, pairs in QUICK_FILTERS for p in pairs if p not in SPECIFIC_ES}
+if _bad:
+    raise ValueError(f"QUICK_FILTERS name specific services that do not exist: {sorted(_bad)}")
+
+
 def categories_for(raw_tag: str) -> list[str]:
     """Every category one raw service belongs to.
 
-    The draft's assignment wins where it has one. Otherwise the category is
-    inferred from the canonical tags the rules produce, so a service added
-    after the draft was written still lands somewhere sensible.
+    specific_services.csv first, then the draft. A service in neither (one of
+    the draft's "Needs Review" tags, or one added to the data since) has no
+    category: guessing one from keywords put tags the draft deliberately left
+    out, like "Advisory Services", into categories they do not belong in.
+    Such a service is still found by search.
     """
-    assigned = ASSIGNED_CATEGORIES.get(_normalize(raw_tag).lower())
-    if assigned:
-        return list(assigned)
-    return list(dict.fromkeys(TAGS[t][0] for t in canonicalize_all(raw_tag)))
+    key = _normalize(raw_tag).lower()
+    pairs = SPECIFIC_BY_RAW.get(key)
+    if pairs:
+        return list(dict.fromkeys(c for c, _s in pairs))
+    return list(ASSIGNED_CATEGORIES.get(key, []))
+
+
+def specifics_for(raw_tags: list[str]) -> set[tuple[str, str]]:
+    """The (category, specific service) pairs one organization offers."""
+    return {
+        (c, s)
+        for r in raw_tags
+        for c, s in SPECIFIC_BY_RAW.get(_normalize(r).lower(), [])
+        if s
+    }
+
+
+def specific_label(category: str, specific: str, lang: str = "en") -> str:
+    return SPECIFIC_ES.get((category, specific), specific) if lang == "es" else specific
 
 
 def org_categories(raw_tags: list[str]) -> list[str]:

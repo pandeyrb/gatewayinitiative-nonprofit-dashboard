@@ -88,23 +88,19 @@ def main() -> None:
 
     # ── quick filters ─────────────────────────────────────────────────────────
     from service_taxonomy import (
-        ASSIGNED_CATEGORIES,
         CATEGORY_ORDER,
         QUICK_FILTERS,
-        TAGS,
-        canonical_tags,
+        categories_for,
         org_categories,
+        specifics_for,
     )
 
     # ── categorization coverage ───────────────────────────────────────────────
+    # Full checks against the draft live in check_specific_services.py.
     live = {t for _i, r in orgs.iterrows() for t in smart_split(r["Services"])}
-    covered = sum(
-        1
-        for t in live
-        if t.replace("\u2019", "'").strip().lower() in ASSIGNED_CATEGORIES
-    )
-    print(f"categorization: {covered}/{len(live)} raw tags assigned by the draft, "
-          f"{len(live) - covered} inferred from rules")
+    covered = sum(1 for t in live if categories_for(t))
+    print(f"categorization: {covered}/{len(live)} raw tags have a category; "
+          f"{len(live) - covered} left uncategorized (the draft's Needs Review)")
 
     cat_counts = {c: 0 for c in CATEGORY_ORDER}
     for _i, r in orgs.iterrows():
@@ -112,19 +108,17 @@ def main() -> None:
             cat_counts[c] += 1
     empty = [c for c, n in cat_counts.items() if n == 0]
     check(not empty, f"categories with no orgs (dead filter options): {empty}")
-    print(f"                26 categories, all populated\n")
+    print(f"                {len(CATEGORY_ORDER)} categories, all populated\n")
 
     print("quick filters:")
-    for key, tags in QUICK_FILTERS:
-        for t in tags:
-            check(t in TAGS, f"chip {key}: {t!r} is not a canonical tag")
+    for key, pairs in QUICK_FILTERS:
         hits = sum(
             1
             for _i, r in orgs.iterrows()
-            if set(canonical_tags(smart_split(r["Services"]))) & set(tags)
+            if specifics_for(smart_split(r["Services"])) & set(pairs)
         )
         check(hits > 0, f"chip {key}: matches no orgs — would be a dead end")
-        print(f"  {key:22} {hits:2d} orgs   {', '.join(tags)}")
+        print(f"  {key:22} {hits:2d} orgs   {', '.join(s for _c, s in pairs)}")
 
     # ── coverage ──────────────────────────────────────────────────────────────
     have_phone = (orgs["Phone"].str.strip() != "").sum()

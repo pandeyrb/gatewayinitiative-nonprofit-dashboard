@@ -31,13 +31,13 @@ from search_utils import matches as _search_matches
 from service_taxonomy import (
     CATEGORY_ORDER,
     QUICK_FILTERS,
-    SPECIFIC_ORDER,
     TAGS,
     canonical_tags,
     category_label,
+    display_label,
     org_categories,
-    specific_label,
-    specifics_for,
+    sort_key,
+    tag_label,
 )
 
 # CartoDB's free basemap tiles (Positron, Voyager, etc.) now require an API
@@ -146,7 +146,7 @@ _POPUP_CSS = """
 .gwi-pop{font-family:__FONT__;width:322px;max-width:84vw;display:flex;
   flex-direction:column;max-height:min(360px,62vh);color:__TEXT_DARK__}
 .gwi-pop-hd{flex:0 0 auto;background:#fff;color:__TEXT_DARK__;font-size:17px;
-  font-family:__DISPLAY__;font-weight:700;line-height:1.25;padding:13px 14px 10px;border-bottom:1px solid __BORDER__}
+  font-family:__DISPLAY__;font-weight:600;line-height:1.25;padding:13px 14px 10px;border-bottom:1px solid __BORDER__}
 /* The only scrolling region. overscroll-behavior stops the page from taking
    over the wheel once this reaches its end. */
 /* min-height:0 is load-bearing: a column flex item defaults to min-height:auto,
@@ -156,7 +156,7 @@ _POPUP_CSS = """
   -webkit-overflow-scrolling:touch;scrollbar-width:thin;
   padding:9px 14px 6px;background:#fff}
 .gwi-pop-bd::-webkit-scrollbar{width:9px}
-.gwi-pop-bd::-webkit-scrollbar-thumb{background:__BORDER_STRONG__;border-radius:5px;
+.gwi-pop-bd::-webkit-scrollbar-thumb{background:#d3c9b9;border-radius:5px;
   border:2px solid #fff}
 /* Directions/website stay put, so they never need scrolling to reach. */
 .gwi-pop-ft{flex:0 0 auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
@@ -181,7 +181,7 @@ _POPUP_CSS = """
 .gwi-sec{font-size:12px;font-weight:600;color:__TEXT_MID__;margin:11px 0 5px;padding-top:9px;border-top:1px solid __BORDER__}
 
 .gwi-chips{display:flex;flex-wrap:wrap;gap:4px}
-.gwi-chip{display:inline-block;background:__TINT__;color:__BRAND_DARK__;
+.gwi-chip{display:inline-block;background:#f6e9e3;color:__BRAND_DARK__;
   border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600;line-height:1.5}
 .gwi-more{flex-basis:100%}
 .gwi-pop .gwi-more>summary{font-size:11px}
@@ -194,17 +194,17 @@ _POPUP_CSS = """
 .gwi-locs{display:flex;flex-direction:column;gap:2px}
 .gwi-loc{display:flex;gap:9px;align-items:flex-start;padding:6px 6px;
   border-radius:8px;cursor:pointer;transition:background .12s}
-.gwi-loc:hover,.gwi-loc:focus{background:__ACCENT_TINT__;outline:none}
+.gwi-loc:hover,.gwi-loc:focus{background:#f6e9e3;outline:none}
 .gwi-loc--static{cursor:default}
 .gwi-loc--static:hover{background:none}
 .gwi-loc-tx{flex:1 1 auto;min-width:0}
 .gwi-loc-t{font-size:12px;font-weight:700;color:__TEXT_DARK__;line-height:1.3}
 .gwi-loc-m{font-size:11px;color:__TEXT_MID__;margin-top:1px}
 .gwi-loc-s{font-size:11px;font-weight:600;margin-top:1px}
-.gwi-s-open{color:#1b6b45}
+.gwi-s-open{color:#1d5c57}
 .gwi-s-closed{color:__TEXT_MUTED__}
 .gwi-go{flex:0 0 auto;color:__BRAND_MED__;font-size:18px;line-height:1;padding-top:2px}
-.gwi-tag{display:inline-block;margin-left:5px;background:__TINT__;color:__TEXT_MUTED__;
+.gwi-tag{display:inline-block;margin-left:5px;background:#f3ede4;color:__TEXT_MUTED__;
   border-radius:4px;padding:0 5px;font-size:10px;font-weight:700;
   text-transform:uppercase;vertical-align:1px}
 .gwi-progs{margin-top:3px}
@@ -233,7 +233,7 @@ _POPUP_CSS = """
   font-size:12px;font-weight:600;color:__TEXT_MID__}
 .gwi-nav button{width:28px;height:28px;border-radius:6px;border:1px solid __BORDER__;
   background:#fff;color:__BRAND_MED__;font-size:17px;line-height:1;cursor:pointer;padding:0}
-.gwi-nav button:hover{background:__ACCENT_TINT__}
+.gwi-nav button:hover{background:#f6e9e3}
 
 .gwi-reports{font-size:11px;color:__TEXT_MID__;margin-top:10px}
 
@@ -274,7 +274,7 @@ _POPUP_CSS = """
 
 .leaflet-marker-icon{transition:opacity .2s ease}
 .gwi-dim{opacity:0!important;pointer-events:none!important}
-.gwi-focus{filter:drop-shadow(0 0 7px rgba(24,32,44,.35))}
+.gwi-focus{filter:drop-shadow(0 0 7px rgba(163,63,36,.5))}
 .gwi-focus .gwi-count{display:none}
 
 </style>
@@ -291,10 +291,7 @@ def _popup_css() -> str:
         .replace("__TEXT_DARK__", TEXT_DARK)
         .replace("__TEXT_MID__", TEXT_MID)
         .replace("__TEXT_MUTED__", TEXT_MUTED)
-        .replace("__BORDER_STRONG__", BORDER_STRONG)
         .replace("__BORDER__", BORDER)
-        .replace("__ACCENT_TINT__", ACCENT_TINT)
-        .replace("__TINT__", BG_TINT)
     )
 
 
@@ -304,7 +301,8 @@ def _add_basemap_layers(m: folium.Map) -> None:
     Used on the main map only, so community members can toggle between
     options during a presentation and give feedback on which they prefer.
 
-    Streets is the default (`show=True`); the rest are opt-in. Exactly one
+    Light Gray is the default (`show=True`): a quiet base lets the brick pins
+    carry the map. The rest are opt-in. Exactly one
     layer may carry `show=True` — with two, Leaflet renders both and the
     stacked tiles show through each other.
     """
@@ -319,14 +317,14 @@ def _add_basemap_layers(m: folium.Map) -> None:
         name=_("basemap_light_gray"),
         max_native_zoom=16,
         max_zoom=19,
-        show=False,
+        show=True,
     ).add_to(m)
     folium.TileLayer(
         tiles=_STREETS_TILES,
         attr=_STREETS_ATTR,
         name=_("basemap_streets"),
         max_zoom=19,
-        show=True,
+        show=False,
     ).add_to(m)
     folium.TileLayer(
         tiles=_IMAGERY_TILES,
@@ -351,72 +349,46 @@ st.set_page_config(
     layout="wide",
     # "auto" collapses the sidebar on phones. "expanded" opened it over the whole
     # screen on load, so the first thing a phone user saw was a filter panel.
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="auto",
 )
 
 # ── design tokens ─────────────────────────────────────────────────────────────
-# Three palettes, each one accent on a cool neutral base. All drawn from
-# Lawrence: the brick of the mills, the Merrimack, and the city's civic blue.
-# River is the default: its teal pins stand out on the Streets basemap, where
-# brick pins blend into the orange highways.
-# Every text pairing clears WCAG AA (4.5:1) on its page background and on white.
-# Pick one with GWI_THEME (and the matching primaryColor in
-# .streamlit/config.toml, which colours Streamlit's own toggles and focus rings).
-THEMES = {
-    "brick": dict(accent="#a8402a", accent_tint="#f8ebe7", accent_tint_hover="#f2dcd4",
-                  accent_deep="#7c2f1f", bg="#f5f6f8",
-                  ink="#18202c", mid="#4a5566", muted="#647082",
-                  border="#e2e6eb", border_strong="#cdd3db", tint="#eceff3"),
-    "river": dict(accent="#1c6660", accent_tint="#e4f0ee", accent_tint_hover="#d3e7e3",
-                  accent_deep="#124a46", bg="#f4f7f7",
-                  ink="#13232a", mid="#44565c", muted="#5c6f75",
-                  border="#dde6e7", border_strong="#c7d3d5", tint="#eaf0f0"),
-    "civic": dict(accent="#2b58a6", accent_tint="#e8eef8", accent_tint_hover="#d7e2f4",
-                  accent_deep="#1d3f7a", bg="#f5f7fa",
-                  ink="#16213a", mid="#475569", muted="#607086",
-                  border="#e1e6ee", border_strong="#cbd3df", tint="#edf1f6"),
-}
-_T = THEMES.get(os.environ.get("GWI_THEME", "river"), THEMES["river"])
-
-INK = _T["ink"]
-ACCENT = _T["accent"]
-ACCENT_TINT = _T["accent_tint"]
-ACCENT_TINT_HOVER = _T["accent_tint_hover"]
-ACCENT_DEEP = _T["accent_deep"]      # hero background, under white text
-PAGE_BG = _T["bg"]
+# "Mill City": the palette is drawn from Lawrence itself — the brick of the
+# Merrimack mills, the river, and the paper-and-ink of a printed community
+# guide — rather than a generic dashboard blue. Every text pairing below
+# clears WCAG AA (4.5:1) on both the paper background and white.
+INK = "#1c2230"           # text, headings                    14.9:1 on paper
+BRICK = "#a33f24"         # accent: pins, links, primary action  6.0:1 on paper
+RIVER = "#1d5c57"         # "open now" only
+PAPER = "#faf7f2"         # page background
 
 BRAND_DARK = INK
-BRAND_MED = ACCENT
+BRAND_MED = BRICK
 TEXT_DARK = INK
-TEXT_MID = _T["mid"]
-TEXT_MUTED = _T["muted"]
+TEXT_MID = "#4b5160"
 BG_WHITE = "#ffffff"
-BG_LIGHT = PAGE_BG
-BG_TINT = _T["tint"]
-BORDER = _T["border"]
-BORDER_STRONG = _T["border_strong"]
+BG_LIGHT = PAPER
+BG_TINT = "#f3ede4"       # quiet fills: chips, sidebar, hover
+BRICK_TINT = "#f6e9e3"    # selected / hovered accent fill
+BORDER = "#e6dfd3"
+BORDER_STRONG = "#d3c9b9" # input and button outlines
 
-# One sans family throughout; headings get weight and tighter tracking rather
-# than a second typeface. Choose with GWI_FONT:
-#   atkinson  Atkinson Hyperlegible Next - drawn by the Braille Institute so
-#             similar letters (Il1, O0) never get confused. The default: many
-#             visitors are older, low-vision, or reading in a second language.
-#   public    Public Sans - the US government's civic typeface (USWDS). Plain,
-#             sturdy, full Spanish coverage.
-#   geist     Geist - a modern geometric sans, crisper and more product-like.
-FONTS = {
-    "public": ("Public Sans", "Public+Sans:wght@400;500;600;700"),
-    "atkinson": ("Atkinson Hyperlegible Next",
-                 "Atkinson+Hyperlegible+Next:wght@400;500;600;700"),
-    "geist": ("Geist", "Geist:wght@400;500;600;700"),
-}
-_F = FONTS.get(os.environ.get("GWI_FONT", "atkinson"), FONTS["atkinson"])
+# Muted text: warm grey, 5.4:1 on paper, so it still passes where it carries meaning.
+TEXT_MUTED = "#6b6558"
+
+# Public Sans for reading (a plain, sturdy civic face with full Spanish
+# coverage) and Fraunces for the few display headings, which gives the page a
+# printed-guide warmth instead of the default app look. Both fall back to the
+# native system faces if Google Fonts is blocked.
 FONT_STACK = (
-    f"'{_F[0]}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, "
+    "'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, "
     "'Helvetica Neue', Arial, sans-serif"
 )
-DISPLAY_STACK = FONT_STACK
-FONTS_URL = f"https://fonts.googleapis.com/css2?family={_F[1]}&display=swap"
+DISPLAY_STACK = "'Fraunces', Georgia, 'Times New Roman', serif"
+FONTS_URL = (
+    "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;"
+    "9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap"
+)
 
 # Type scale, base 16. Six steps, each a perceptible jump — earlier code used
 # eleven sizes from 10 to 28, where neighbours like 13/14/15 read as drift
@@ -441,14 +413,20 @@ FEEDBACK_FORM_URL = ""
 # ── i18n ──────────────────────────────────────────────────────────────────────
 T = {
     "en": {
+        "filters_heading": "More filters",
+        "orgs_total": "{n} organizations total",
         "search_label": "Or search",
         "search_placeholder": "Name, city, or service…",
         "search_placeholder_main": "Search for food, rent help, ESL, or an organization…",
         "category_label": "Category",
         "category_placeholder": "All categories",
+        "services_label": "Specific service",
+        "services_placeholder": "Type to search services…",
         "orgtype_label": "Organization Type",
         "orgtype_all": "All",
+        "reset_button": "Clear all filters",
         "page_heading": "Lawrence Resource Finder",
+        "page_sub": "Free and low-cost help from {n} local organizations: food, housing, health care, legal help and more.",
         "showing_all": "Showing all {n} organizations",
         "showing_filtered": "Showing {n} of {total} organizations",
         "nav_cta": "Ask AI assistant",
@@ -476,7 +454,7 @@ T = {
         "status_closed": "CLOSED",
         "status_until": "until {t}",
         "status_opens": "opens {t}",
-        "status_unknown": "Hours not published. Call ahead",
+        "status_unknown": "Hours not published — call ahead",
         "hours_source": "Hours checked {d}",
         "hours_source_link": "source",
         "filter_open_now": "Open now",
@@ -493,7 +471,7 @@ T = {
         "focus_show_all": "Show all",
         "pin_multi_short": "{n} locations",
         "months_short": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
-        "pin_multi_hint": "{n} locations. Click to see them all",
+        "pin_multi_hint": "{n} locations — click to see them all",
         "loc_this_pin": "This pin",
         "loc_programs_here": "{n} programs here",
         "loc_tap_hint": "Tap a location to see it on the map.",
@@ -518,7 +496,7 @@ T = {
         "impact_open": "Open",
         "strategic_open": "Open",
         "select_org": "Select an organization",
-        "org_not_found": "Organization not found. Please try another selection.",
+        "org_not_found": "Organization not found — please try another selection.",
         "sec_location": "Location",
         "sec_orgtype": "Organization Type",
         "sec_phone": "Phone",
@@ -534,12 +512,12 @@ T = {
         "no_map_coords": "No map coordinates available for this organization.",
         "popup_locations": "Locations",
         "sec_locations": "Locations & Hours",
-        "loc_admin_badge": "Office only. No walk-in services",
+        "loc_admin_badge": "Office only — no walk-in services",
         "loc_admin_note": "The pin above is this organization's office. Services are provided at the locations listed here.",
         "loc_admin_note_map": "This pin is the organization's office. Services are at the numbered locations.",
         "loc_directions": "Directions",
         "loc_call": "Call",
-        "loc_no_address": "By phone only. No public address listed",
+        "loc_no_address": "By phone only — no public address listed",
         "quick_heading": "What do you need help with?",
         "quick_food": "Food",
         "quick_housing": "Housing & shelter",
@@ -547,32 +525,24 @@ T = {
         "quick_immigration": "Immigration help",
         "quick_jobs": "Jobs & training",
         "clear_filters": "Clear filters",
-        "stat_orgs": "local organizations",
-        "stat_services": "kinds of help",
-        "stat_towns": "towns covered",
-        "hero_alt": "The green Duck Bridge over the Merrimack River, with the Ayer Mill clock tower behind it",
-        "need_food": "Pantries and free meals",
-        "need_housing": "Rent help and shelters",
-        "need_health": "Clinics, hospitals and insurance",
-        "need_immigration": "Legal help and citizenship",
-        "need_jobs": "Job search and training",
-        "need_count": "{n} organizations",
-        "footer_checked": "Addresses, phone numbers and posted hours were last checked in September 2026.",
-        "footer_missing": "Something missing or wrong?",
-        "footer_photo": "Photo: The Duck Bridge and Ayer Mill, by PerriAndMe, CC BY-SA 4.0, via Wikimedia Commons.",
-        "services_in": "Specific services in {cat}",
-        "services_hint": "Choose a category to see its specific services.",
         "back_to": "Back to {org}",
+        "more_filters_hint": "Narrow by a specific service or organization type.",
     },
     "es": {
+        "filters_heading": "Más filtros",
+        "orgs_total": "{n} organizaciones en total",
         "search_label": "O busque",
         "search_placeholder": "Nombre, ciudad o servicio…",
         "search_placeholder_main": "Buscar comida, vivienda, inglés o una organización…",
         "category_label": "Categoría",
         "category_placeholder": "Todas las categorías",
+        "services_label": "Servicio específico",
+        "services_placeholder": "Escriba para buscar servicios…",
         "orgtype_label": "Tipo de Organización",
         "orgtype_all": "Todos",
+        "reset_button": "Borrar todos los filtros",
         "page_heading": "Buscador de Recursos de Lawrence",
+        "page_sub": "Ayuda gratuita o de bajo costo de {n} organizaciones locales: comida, vivienda, salud, ayuda legal y más.",
         "showing_all": "Mostrando las {n} organizaciones",
         "showing_filtered": "Mostrando {n} de {total} organizaciones",
         "nav_cta": "Preguntar al asistente de IA",
@@ -600,7 +570,7 @@ T = {
         "status_closed": "CERRADO",
         "status_until": "hasta las {t}",
         "status_opens": "abre {t}",
-        "status_unknown": "Horario no publicado. Llame antes de ir",
+        "status_unknown": "Horario no publicado — llame antes de ir",
         "hours_source": "Horario verificado el {d}",
         "hours_source_link": "fuente",
         "filter_open_now": "Abiertos ahora",
@@ -617,7 +587,7 @@ T = {
         "focus_show_all": "Mostrar todo",
         "pin_multi_short": "{n} ubicaciones",
         "months_short": "ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic",
-        "pin_multi_hint": "{n} ubicaciones. Haga clic para verlas todas",
+        "pin_multi_hint": "{n} ubicaciones — haga clic para verlas todas",
         "loc_this_pin": "Este marcador",
         "loc_programs_here": "{n} programas aquí",
         "loc_tap_hint": "Toque una ubicación para verla en el mapa.",
@@ -642,7 +612,7 @@ T = {
         "impact_open": "Abrir",
         "strategic_open": "Abrir",
         "select_org": "Seleccione una organización",
-        "org_not_found": "Organización no encontrada. Intente otra selección.",
+        "org_not_found": "Organización no encontrada — intente otra selección.",
         "sec_location": "Ubicación",
         "sec_orgtype": "Tipo de Organización",
         "sec_phone": "Teléfono",
@@ -658,12 +628,12 @@ T = {
         "no_map_coords": "No hay coordenadas de mapa disponibles para esta organización.",
         "popup_locations": "Ubicaciones",
         "sec_locations": "Ubicaciones y Horarios",
-        "loc_admin_badge": "Solo oficina. No atiende sin cita",
+        "loc_admin_badge": "Solo oficina — no atiende sin cita",
         "loc_admin_note": "El marcador de arriba es la oficina de esta organización. Los servicios se ofrecen en las ubicaciones que aparecen aquí.",
         "loc_admin_note_map": "Este marcador es la oficina de la organización. Los servicios se ofrecen en las ubicaciones numeradas.",
         "loc_directions": "Cómo llegar",
         "loc_call": "Llamar",
-        "loc_no_address": "Solo por teléfono. Sin dirección pública",
+        "loc_no_address": "Solo por teléfono — sin dirección pública",
         "quick_heading": "¿Con qué necesita ayuda?",
         "quick_food": "Comida",
         "quick_housing": "Vivienda y refugio",
@@ -671,22 +641,8 @@ T = {
         "quick_immigration": "Ayuda de inmigración",
         "quick_jobs": "Empleo y capacitación",
         "clear_filters": "Borrar filtros",
-        "stat_orgs": "organizaciones locales",
-        "stat_services": "tipos de ayuda",
-        "stat_towns": "pueblos",
-        "hero_alt": "El puente verde Duck Bridge sobre el río Merrimack, con la torre del reloj de Ayer Mill detrás",
-        "need_food": "Despensas y comidas gratis",
-        "need_housing": "Ayuda con alquiler y refugios",
-        "need_health": "Clínicas, hospitales y seguro médico",
-        "need_immigration": "Ayuda legal y ciudadanía",
-        "need_jobs": "Empleo y capacitación",
-        "need_count": "{n} organizaciones",
-        "footer_checked": "Las direcciones, teléfonos y horarios publicados se verificaron por última vez en septiembre de 2026.",
-        "footer_missing": "¿Falta algo o hay un error?",
-        "footer_photo": "Foto: The Duck Bridge y Ayer Mill, por PerriAndMe, CC BY-SA 4.0, vía Wikimedia Commons.",
-        "services_in": "Servicios específicos en {cat}",
-        "services_hint": "Elija una categoría para ver sus servicios específicos.",
         "back_to": "Volver a {org}",
+        "more_filters_hint": "Filtre por un servicio específico o tipo de organización.",
     },
 }
 
@@ -759,97 +715,53 @@ st.markdown(
   html, body, [class*="css"] {{ color:{TEXT_DARK} !important;
     font-family:{FONT_STACK} !important;
     font-size:16px; line-height:1.5; }}
-  .stApp {{ background-color:{PAGE_BG}; }}
+  .stApp {{ background-color:{PAPER}; }}
   .stApp p, .stApp label, .stApp input, .stApp button, .stApp li,
   .stApp textarea {{ font-family:{FONT_STACK}; }}
   header[data-testid="stHeader"] {{ background:transparent; }}
-  .stApp a {{ color:{ACCENT}; text-underline-offset:3px; }}
+  .stApp a {{ color:{BRICK}; text-underline-offset:3px; }}
 
   .block-container {{ padding-top:2.25rem; padding-bottom:3rem; max-width:1240px; }}
   h1,h2,h3,h4,h5,h6 {{ color:{INK} !important; line-height:1.2; }}
 
-  /* ── top bar ── */
-  .gwi-links {{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }}
+  /* ── header ── */
+  .gwi-h1 {{ font-family:{DISPLAY_STACK} !important; font-weight:600;
+    font-size:42px !important; letter-spacing:-.015em; color:{INK} !important;
+    margin:0 !important; padding:0 !important; line-height:1.1; }}
+  .gwi-sub {{ color:{TEXT_MID}; font-size:17px; margin:8px 0 0; max-width:40em; }}
+
+  .gwi-links {{ display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+    margin-top:12px; }}
   .gwi-link {{ color:{TEXT_MID} !important; font-size:14px; font-weight:500;
     text-decoration:underline; text-underline-offset:3px;
     text-decoration-color:{BORDER_STRONG}; }}
-  .gwi-link--strong {{ color:{ACCENT} !important; font-weight:600;
-    text-decoration-color:{ACCENT}; }}
+  .gwi-link--strong {{ color:{BRICK} !important; font-weight:600;
+    text-decoration-color:{BRICK}; }}
   .gwi-link:hover {{ text-decoration-color:currentColor; }}
+  /* Language switch pinned top-right, beside the title. */
   .st-key-lang_radio {{ display:flex; justify-content:flex-end; }}
-
-  /* ── hero ── */
-  .gwi-hero {{ display:grid; grid-template-columns:1.2fr 1fr; min-height:330px;
-    border-radius:20px; overflow:hidden; margin:10px 0 0;
-    background:{ACCENT_DEEP};
-    box-shadow:0 18px 40px -24px rgba(19,35,42,.55); }}
-  .gwi-hero-tx {{ display:flex; flex-direction:column; justify-content:space-between;
-    gap:28px; padding:44px 44px 96px;
-    background:radial-gradient(120% 90% at 0% 0%, {ACCENT} 0%, {ACCENT_DEEP} 70%); }}
-  .gwi-h1 {{ font-family:{DISPLAY_STACK} !important; font-weight:700;
-    font-size:46px !important; letter-spacing:-.03em; color:#fff !important;
-    margin:0 !important; padding:0 !important; line-height:1.05;
-    text-wrap:balance; }}
-  .gwi-stats {{ display:flex; gap:36px; flex-wrap:wrap; }}
-  .gwi-stat b {{ display:block; color:#fff; font-size:30px; font-weight:700;
-    line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }}
-  .gwi-stat span {{ display:block; color:rgba(255,255,255,.85); font-size:14px;
-    margin-top:6px; }}
-  .gwi-hero-img {{ background-size:cover; background-position:center 32%;
-    min-height:260px; }}
 
   /* ── the finder card ── */
   .st-key-gwi_filters {{
-    background:{BG_WHITE}; border:1px solid {BORDER}; border-radius:18px;
-    padding:24px 26px 14px; margin:-64px 28px 0; position:relative; z-index:2;
-    width:calc(100% - 56px) !important;
-    box-shadow:0 20px 40px -24px rgba(19,35,42,.35); }}
-  .gwi-q {{ font-size:19px; font-weight:650; letter-spacing:-.01em;
+    background:{BG_WHITE}; border:1px solid {BORDER}; border-radius:14px;
+    padding:22px 24px 12px; margin-top:22px;
+    box-shadow:0 1px 2px rgba(28,34,48,.04); }}
+  .gwi-q {{ font-family:{DISPLAY_STACK} !important; font-size:22px; font-weight:500;
     color:{INK}; margin:0 0 12px; }}
-  .gwi-hint-line {{ color:{TEXT_MUTED}; font-size:14px; margin:2px 0 14px; }}
 
-  /* Specific-service pills: quiet until chosen, then the accent. */
-  .st-key-gwi_svcs {{ border-top:1px solid {BORDER}; padding-top:12px; margin-top:4px; }}
-  .stPills button {{ border-radius:999px !important; border:1px solid {BORDER_STRONG} !important;
-    background:{BG_WHITE} !important; min-height:36px;
-    transition:background .15s, border-color .15s, transform .1s; }}
-  .stPills button p {{ font-size:14px !important; color:{INK} !important; }}
-  .stPills button:hover {{ border-color:{ACCENT} !important; }}
-  .stPills button[kind="pillsActive"] {{ background:{ACCENT_TINT} !important;
-    border-color:{ACCENT} !important; }}
-  .stPills button[kind="pillsActive"] p {{ color:{ACCENT} !important; font-weight:600 !important; }}
-
-  /* Press feedback on every button. */
-  .stApp button:active {{ transform:translateY(1px); }}
-  .stApp button:focus-visible {{ outline:2px solid {ACCENT} !important; outline-offset:2px; }}
-
-  .st-key-gwi_chips {{ padding-bottom:18px; margin-bottom:6px;
+  .st-key-gwi_chips {{ padding-bottom:16px; margin-bottom:6px;
     border-bottom:1px solid {BORDER}; }}
-  /* Equal-height cards whatever the label length (Spanish runs longer). */
-  .st-key-gwi_chips [data-testid="stHorizontalBlock"] {{ align-items:stretch; }}
-  .st-key-gwi_chips [data-testid="stColumn"] div:has(button),
-  .st-key-gwi_chips button {{ height:100%; }}
   .st-key-gwi_chips button {{
-    position:relative; min-height:116px; border-radius:14px !important;
-    border:1px solid transparent !important; background:{ACCENT_TINT} !important;
-    display:flex !important; flex-direction:column; align-items:flex-start !important;
-    justify-content:flex-start !important; text-align:left; padding:36px 16px 14px !important;
-    transition:background .2s, transform .15s, box-shadow .2s; }}
-  .st-key-gwi_chips button > div, .st-key-gwi_chips button > div > span,
-  .st-key-gwi_chips button > div > span > div {{ width:100%; justify-content:flex-start !important; }}
-  .st-key-gwi_chips button p {{ font-size:17px !important; font-weight:700 !important;
-    color:{INK} !important; text-align:left; }}
-  .st-key-gwi_chips button::after {{ display:block; font-size:13px; color:{TEXT_MID};
-    margin-top:2px; line-height:1.3; }}
-  .st-key-gwi_chips button::before {{ position:absolute; top:12px; left:16px;
-    font-size:12px; font-weight:600; color:{ACCENT}; }}
+    min-height:48px; border-radius:10px !important;
+    border:1px solid {BORDER_STRONG} !important; background:{BG_WHITE} !important;
+    transition:border-color .12s, background .12s; }}
+  .st-key-gwi_chips button p {{ font-size:16px !important; font-weight:600 !important;
+    color:{INK} !important; }}
   .st-key-gwi_chips button[kind="secondary"]:hover {{
-    background:{ACCENT_TINT_HOVER} !important; transform:translateY(-2px);
-    box-shadow:0 10px 20px -14px rgba(19,35,42,.45); }}
-  .st-key-gwi_chips button[kind="primary"] {{ background:{ACCENT} !important; }}
-  .st-key-gwi_chips button[kind="primary"] p,
-  .st-key-gwi_chips button[kind="primary"]::after,
-  .st-key-gwi_chips button[kind="primary"]::before {{ color:#fff !important; }}
+    border-color:{BRICK} !important; background:{BRICK_TINT} !important; }}
+  .st-key-gwi_chips button[kind="primary"] {{
+    background:{BRICK} !important; border-color:{BRICK} !important; }}
+  .st-key-gwi_chips button[kind="primary"] p {{ color:#fff !important; }}
 
   /* Form labels: readable, not shouting. */
   [data-testid="stWidgetLabel"] p {{
@@ -864,49 +776,37 @@ st.markdown(
   .stTextInput .react-aria-TextField > div:focus-within,
   .stSelectbox .react-aria-ComboBox > div:focus-within,
   [data-baseweb="select"] > div:focus-within {{
-    border-color:{ACCENT} !important; box-shadow:0 0 0 3px {ACCENT_TINT}; }}
+    border-color:{BRICK} !important; box-shadow:0 0 0 3px {BRICK_TINT}; }}
   [data-baseweb="select"] * {{ color:{INK}; }}
   .stTextInput input {{ font-size:16px !important; }}
   .stTextInput input::placeholder {{ color:{TEXT_MUTED}; }}
 
   /* Selected categories/services. */
   [data-baseweb="tag"], [data-baseweb="tag"] * {{
-    background:{ACCENT_TINT} !important; color:{ACCENT} !important; }}
+    background:{BRICK_TINT} !important; color:{BRICK} !important; }}
   [data-baseweb="tag"] {{ border-radius:6px !important; font-weight:600 !important; }}
-  [data-baseweb="tag"] svg {{ fill:{ACCENT} !important; }}
+  [data-baseweb="tag"] svg {{ fill:{BRICK} !important; }}
 
   /* ── results line + tabs ── */
-  .gwi-count {{ color:{TEXT_MID}; font-size:16px; margin:0; }}
-  .st-key-clear_main button {{ justify-content:flex-end; }}
-  .st-key-clear_main button p {{ color:{ACCENT} !important; font-weight:600 !important;
-    text-decoration:underline; text-underline-offset:3px; }}
-  .gwi-count b {{ color:{INK}; font-weight:700; }}
-  /* Tabs as a segmented bar: the current view is obvious at a glance. */
-  [data-testid="stTabs"] [role="tablist"] {{ gap:4px; background:{BG_TINT};
-    padding:4px; border-radius:12px; width:fit-content; border:none; }}
-  [data-testid="stTab"] {{ border-radius:9px; padding:8px 18px !important;
-    height:auto; transition:background .15s; border:none !important; }}
-  [data-testid="stTab"] p {{
-    font-size:15px !important; font-weight:600 !important; color:{TEXT_MID} !important; }}
-  [data-testid="stTab"]:hover p {{ color:{INK} !important; }}
-  [data-testid="stTab"] {{ box-shadow:none !important; }}
-  [data-testid="stTab"][aria-selected="true"] {{ background:{BG_WHITE};
-    box-shadow:0 1px 3px rgba(19,35,42,.14) !important; }}
-  [data-testid="stTab"]::before, [data-testid="stTab"]::after,
-  [data-testid="stTabs"] [role="tablist"]::before,
-  [data-testid="stTabs"] [role="tablist"]::after {{ display:none !important; }}
-  [data-testid="stTabs"] .react-aria-SelectionIndicator {{ display:none !important; }}
-  [data-testid="stTab"][aria-selected="true"] p {{ color:{INK} !important; }}
+  .gwi-count {{ color:{TEXT_MID}; font-size:15px; margin:0; }}
+  .gwi-count b {{ color:{INK}; font-weight:600; }}
+  [data-testid="stTabs"] button[role="tab"] p {{
+    font-size:16px !important; font-weight:600 !important; }}
+  [data-testid="stTabs"] [data-baseweb="tab-list"] {{ gap:22px; }}
 
-  /* ── footer ── */
-  .gwi-foot {{ margin-top:48px; padding-top:20px; border-top:1px solid {BORDER};
-    color:{TEXT_MUTED}; font-size:14px; }}
-  .gwi-foot p {{ margin:0 0 6px; }}
-  .gwi-foot-credit, .gwi-foot-credit a {{ font-size:12px; color:{TEXT_MUTED} !important; }}
+  /* ── sidebar ── */
+  section[data-testid="stSidebar"] {{ background-color:{BG_TINT} !important;
+    border-right:1px solid {BORDER}; }}
+  section[data-testid="stSidebar"] * {{ color:{INK}; }}
+  .gwi-side-h {{ font-family:{DISPLAY_STACK} !important; font-size:22px;
+    font-weight:600; color:{INK}; margin:0 0 4px; }}
+  section[data-testid="stSidebar"] [data-testid="stButton"] button {{
+    background:{BG_WHITE} !important; border:1px solid {BORDER_STRONG} !important;
+    border-radius:10px !important; }}
 
   /* ── detail tab ── */
-  .gwi-detail-h {{ font-family:{DISPLAY_STACK} !important; font-weight:700 !important;
-    font-size:28px !important; letter-spacing:-.02em; margin:0 !important; padding:0 !important; }}
+  .gwi-detail-h {{ font-family:{DISPLAY_STACK} !important; font-weight:600 !important;
+    font-size:30px !important; margin:0 !important; padding:0 !important; }}
   .svc-chip {{
     display:inline-block; background:{BG_TINT}; color:{INK};
     border-radius:6px; padding:3px 10px; margin:3px; font-size:14px; line-height:1.5; }}
@@ -920,34 +820,22 @@ st.markdown(
   iframe {{ border-radius:12px; }}
   hr {{ border:none; border-top:1px solid {BORDER}; margin:10px 0; }}
 
-  /* Phones: the photo goes on top as a banner, the finder stops overlapping
-     sideways, and the five needs become a row of cards that scrolls. */
+  /* Phones. The five needs stay in one row that scrolls sideways. */
   @media (max-width: 640px) {{
     .block-container {{ padding-top:1rem; }}
+    .gwi-h1 {{ font-size:30px !important; }}
     .st-key-lang_radio {{ justify-content:flex-start; }}
-    .gwi-hero {{ grid-template-columns:1fr; min-height:0; border-radius:16px; }}
-    .gwi-hero-img {{ order:-1; min-height:170px; background-position:center 30%; }}
-    .gwi-hero-tx {{ padding:24px 22px 76px; gap:20px; }}
-    .gwi-h1 {{ font-size:32px !important; }}
-    .gwi-stats {{ gap:22px; }}
-    .gwi-stat b {{ font-size:24px; }}
-    .gwi-stat span {{ font-size:13px; }}
-    .st-key-gwi_filters {{ margin:-52px 10px 0; padding:18px 16px 8px;
-      width:calc(100% - 20px) !important; }}
-    .gwi-q {{ font-size:17px; }}
+    .gwi-sub {{ font-size:15px; }}
+    .st-key-gwi_filters {{ padding:16px 14px 6px; }}
+    .gwi-q {{ font-size:19px; }}
     .st-key-gwi_chips [data-testid="stHorizontalBlock"] {{
       flex-direction:row !important; flex-wrap:nowrap !important;
-      overflow-x:auto; gap:10px !important; padding-bottom:4px;
-      scrollbar-width:none; scroll-snap-type:x mandatory; }}
+      overflow-x:auto; gap:8px !important; padding-bottom:4px;
+      scrollbar-width:none; }}
     .st-key-gwi_chips [data-testid="stColumn"],
     .st-key-gwi_chips [data-testid="column"] {{
-      flex:0 0 72% !important; width:72% !important; min-width:0 !important;
-      scroll-snap-align:start; }}
-    [data-testid="stTabs"] [data-baseweb="tab-list"] {{ width:100%; }}
-  }}
-
-  @media (prefers-reduced-motion: reduce) {{
-    .stApp * {{ transition:none !important; }}
+      flex:0 0 auto !important; width:auto !important; min-width:0 !important; }}
+    .st-key-gwi_chips button {{ white-space:nowrap; padding:4px 16px; }}
   }}
 </style>
 """,
@@ -1055,15 +943,11 @@ def load_data(path: str) -> pd.DataFrame:
         lambda r: canonical_tags(r["SvcTagList"] or r["SvcList"]), axis=1
     )
 
-    # Categories and specific services both come from the categorization draft,
-    # via data/specific_services.csv, not from the canonical tags. The draft is
-    # the authority on which category a service belongs to, and it assigns
-    # several services to more than one.
+    # Categories come from the categorization draft (data/service_categories.csv),
+    # not from the canonical tags — the draft is the authority on which category
+    # a service belongs to, and it assigns several services to more than one.
     df["Categories"] = df.apply(
         lambda r: org_categories(r["SvcTagList"] or r["SvcList"]), axis=1
-    )
-    df["Specifics"] = df.apply(
-        lambda r: specifics_for(r["SvcTagList"] or r["SvcList"]), axis=1
     )
 
     df = df.rename(
@@ -1416,7 +1300,7 @@ def _locations_html(plan: list[dict], key: str | None, n_pins: int) -> str:
                 items = "".join(
                     f'<div class="gwi-prog-li"><b>{_program_label(loc)}</b>'
                     + (
-                        f': {loc["ServicesHere"].strip()}'
+                        f' — {loc["ServicesHere"].strip()}'
                         if loc.get("ServicesHere", "").strip()
                         and loc["ServicesHere"].strip().lower()
                         != _program_label(loc).lower()
@@ -1791,7 +1675,7 @@ def _site_popup_html(org_name: str, key: str, e: dict, n_pins: int) -> str:
             body += (
                 f'<div class="gwi-prog"><div class="gwi-prog-t">{label}'
                 + (
-                    f'<span class="gwi-muted">: {svc}</span>'
+                    f'<span class="gwi-muted"> — {svc}</span>'
                     if svc and svc.lower() != label.lower()
                     else ""
                 )
@@ -1937,10 +1821,10 @@ def _hours_lines(hours: str) -> list[str]:
 
 
 # ── opening hours ─────────────────────────────────────────────────────────────
-OPEN_GREEN = "#1b6b45"
-OPEN_GREEN_BG = "#e3f1e8"
-CLOSED_RED = TEXT_MID
-CLOSED_RED_BG = BG_TINT
+OPEN_GREEN = RIVER
+OPEN_GREEN_BG = "#e2efec"
+CLOSED_RED = "#6b4a1f"
+CLOSED_RED_BG = "#f4ece0"
 
 
 def _now_local() -> datetime:
@@ -2092,73 +1976,53 @@ def _hours_html(hours_text: str) -> str:
 
 
 # ── filter callbacks ──────────────────────────────────────────────────────────
-# Specific services are chosen per category: each open category draws its own
-# set of pills under the key "svc::<category>", and the selected services are
-# the union of those. See the finder below.
-SVC_KEY = "svc::"
-
-
-def _svc_keys() -> list[str]:
-    return [k for k in st.session_state if str(k).startswith(SVC_KEY)]
-
-
 def _reset_filters():
     st.session_state["search"] = ""
     st.session_state["sel_cats"] = []
-    for k in _svc_keys():
-        st.session_state[k] = []
+    st.session_state["sel_svcs"] = []
     st.session_state["sel_org_type_label"] = _("orgtype_all")
     st.session_state["open_now"] = False
 
 
-def _selected_specifics() -> list[tuple[str, str]]:
-    """Every (category, specific service) currently picked, in a stable order."""
-    return sorted(
-        (k[len(SVC_KEY):], s)
-        for k in _svc_keys()
-        for s in (st.session_state.get(k) or [])
-    )
+def _apply_quick_filter(tags: list[str]) -> None:
+    """Jump the map to one common need.
 
-
-def _apply_quick_filter(pairs: list[tuple[str, str]]) -> None:
-    """Jump to one common need, and show what it means.
-
-    Runs as a button `on_click` callback, so it can set widget state before
-    the widgets are drawn. It opens the categories the chip's services live in
-    and pre-selects those services as pills, so the person sees exactly which
-    services "Food" covers and can narrow it further.
+    Runs as a button `on_click` callback: callbacks run before the rerun, so
+    `sel_svcs` can be set before the sidebar multiselect that owns it is drawn.
 
     Toggles: pressing the active chip again clears the filter, which matches
-    what its pressed state implies.
+    what its `type="primary"` pressed state implies. Otherwise it replaces the
+    selection rather than appending, so a chip is a clean jump instead of
+    piling onto whatever was already selected.
+
+    Also clears the category. The service dropdown is scoped to the chosen
+    category, so a chip whose service sits outside it would be pruned away the
+    moment it was set — the chip would appear to do nothing.
     """
-    active = _selected_specifics()
-    for k in _svc_keys():
-        st.session_state[k] = []
-    if active == sorted(pairs):
-        st.session_state["sel_cats"] = []
-        return
-    cats = sorted({c for c, _s in pairs}, key=CATEGORY_ORDER.index)
-    st.session_state["sel_cats"] = cats
-    for c in cats:
-        st.session_state[SVC_KEY + c] = [s for cc, s in pairs if cc == c]
+    current = st.session_state.get("sel_svcs", [])
+    st.session_state["sel_cats"] = []
+    st.session_state["sel_svcs"] = [] if current == tags else tags
 
 
 # ── page header ───────────────────────────────────────────────────────────────
-# Top bar: the secondary tools on the left, the language switch on the right.
-# With FEEDBACK_FORM_URL unset, feedback still renders but points nowhere and
-# says so on hover.
-if FEEDBACK_FORM_URL:
-    feedback_attrs = (
-        f'href="{FEEDBACK_FORM_URL}" target="_blank" rel="noopener noreferrer"'
-    )
-    feedback_extra = ""
-else:
-    feedback_attrs = f'href="#" title="{_("feedback_unset")}"'
-    feedback_extra = "opacity:.6;cursor:not-allowed;"
+title_col, lang_col = st.columns([8, 3])
+with title_col:
+    # Feedback and the AI assistant are secondary tools, so they sit under the
+    # subtitle as quiet links instead of competing with the title. With
+    # FEEDBACK_FORM_URL unset, feedback still renders but points nowhere and
+    # says so on hover.
+    if FEEDBACK_FORM_URL:
+        feedback_attrs = (
+            f'href="{FEEDBACK_FORM_URL}" target="_blank" rel="noopener noreferrer"'
+        )
+        feedback_extra = ""
+    else:
+        feedback_attrs = f'href="#" title="{_("feedback_unset")}"'
+        feedback_extra = "opacity:.6;cursor:not-allowed;"
 
-links_col, lang_col = st.columns([8, 3], vertical_alignment="center")
-with links_col:
     st.markdown(
+        f"<h1 class='gwi-h1'>{_('page_heading')}</h1>"
+        f"<p class='gwi-sub'>{_('page_sub').format(n=len(df))}</p>"
         f'<div class="gwi-links">'
         f'<a href="{GEMINI_GEM_URL}" target="_blank" rel="noopener noreferrer" '
         f'title="{_("nav_cta_help")}" class="gwi-link gwi-link--strong">'
@@ -2178,116 +2042,34 @@ with lang_col:
     )
     # Clicking the selected option deselects it; treat that as "no change".
     if lang_choice and lang_choice != st.session_state["lang"]:
-        # Streamlit resets a widget whose label changes, and every label
-        # changes with the language, so switching would silently drop the
-        # search and filters. Carry them across the rerun.
-        st.session_state["_carry"] = {
-            k: st.session_state[k]
-            for k in st.session_state
-            if k in ("search", "sel_cats", "open_now") or str(k).startswith(SVC_KEY)
-        }
         st.session_state["lang"] = lang_choice
         st.rerun()
 
-# Hero: the name, three real numbers from the data, and a photograph of the
-# city itself. The Duck Bridge's green is where the site's teal comes from.
-# Hotlinked from Wikimedia's CDN, which permits it; the licence (CC BY-SA 4.0)
-# requires the credit that sits in the footer.
-HERO_PHOTO = (
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/"
-    "The_Duck_Bridge_%26_Ayer_Mill_Lawrence%2C_Massachusetts.jpg/"
-    "1280px-The_Duck_Bridge_%26_Ayer_Mill_Lawrence%2C_Massachusetts.jpg"
-)
-HERO_PHOTO_PAGE = (
-    "https://commons.wikimedia.org/wiki/"
-    "File:The_Duck_Bridge_%26_Ayer_Mill_Lawrence,_Massachusetts.jpg"
-)
-_n_services = len({spec for pairs in df["Specifics"] for _c, spec in pairs})
-_n_towns = df["City"].str.strip().replace("", pd.NA).dropna().nunique()
-_stats = "".join(
-    f'<div class="gwi-stat"><b>{n}</b><span>{label}</span></div>'
-    for n, label in (
-        (len(df), _("stat_orgs")),
-        (_n_services, _("stat_services")),
-        (_n_towns, _("stat_towns")),
-    )
-)
-st.markdown(
-    f'<section class="gwi-hero">'
-    f'<div class="gwi-hero-tx"><h1 class="gwi-h1">{_("page_heading")}</h1>'
-    f'<div class="gwi-stats">{_stats}</div></div>'
-    f'<div class="gwi-hero-img" role="img" aria-label="{_("hero_alt")}" '
-    f'style="background-image:url(\'{HERO_PHOTO}\')"></div>'
-    f"</section>",
-    unsafe_allow_html=True,
-)
 
-
-# ── the finder ────────────────────────────────────────────────────────────────
-# Every filter lives in one card on the page. There is no sidebar: it starts
-# collapsed on phones, so its filters were invisible to exactly the people most
-# likely to need this, and on desktop it split attention between two places.
-#
-# The card reads top to bottom as a question and its answers: the five most
-# common needs first, then search and the broader filters. Specific services
-# (167 of them, from data/specific_services.csv) are never shown as one long
-# list. Choosing a category reveals only that category's services, as tappable
-# pills with how many organizations offer each, so the full detail is one step
-# away without the clutter.
-for _k, _v in st.session_state.pop("_carry", {}).items():
-    st.session_state[_k] = _v
+# ── main filters ──────────────────────────────────────────────────────────────
+# Search, category and "open now" live on the page rather than in the sidebar:
+# the sidebar starts collapsed on phones and is easy to miss on desktop, and
+# these three are what nearly everyone reaches for first. The finer controls
+# (specific service, organization type) stay in the sidebar.
 st.session_state.setdefault("search", "")
-_lang = st.session_state["lang"]
 
-# Options and counts come from the data, not the taxonomy, so no option is a
-# dead end and each count says what choosing it will leave on the map.
-cat_counts = {}
-for lst in df["Categories"]:
-    for c in lst:
-        cat_counts[c] = cat_counts.get(c, 0) + 1
-all_categories = sorted(cat_counts, key=CATEGORY_ORDER.index)
-
-# Counts are keyed by (category, specific service): the same name can sit in
-# two categories ("Special Education" is in both K-12 and Disability).
-svc_counts: dict[tuple[str, str], int] = {}
-for pairs in df["Specifics"]:
-    for pair in pairs:
-        svc_counts[pair] = svc_counts.get(pair, 0) + 1
-# In the order the CSV lists them, which puts the most-needed first.
-services_in = {
-    c: [s for s in SPECIFIC_ORDER.get(c, []) if (c, s) in svc_counts]
-    for c in all_categories
-}
-
-# Only offer a common-need chip that leads somewhere.
-live_chips = [
-    (key, [p for p in pairs if p in svc_counts])
-    for key, pairs in QUICK_FILTERS
-    if any(p in svc_counts for p in pairs)
-]
-current_svcs = _selected_specifics()
-
-# Each common-need button is a small card: the need, what it covers, and how
-# many organizations that is. Streamlit buttons hold one line of text, so the
-# second and third lines are drawn with CSS generated here, per button.
-def _need_count(pairs: list[tuple[str, str]]) -> int:
-    return int(df["Specifics"].apply(lambda have: any(p in have for p in pairs)).sum())
-
-
-def _css_str(text: str) -> str:
-    """A CSS string literal. Not json.dumps: CSS has no \\uXXXX escape, so an
-    escaped "í" rendered as "u00ed". Raw UTF-8 is valid inside CSS quotes."""
-    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
-
-
-_need_css = "".join(
-    f".st-key-quick_{key} button::after{{content:{_css_str(_('need_' + key[6:]))};}}"
-    f".st-key-quick_{key} button::before{{content:"
-    f"{_css_str(_('need_count').format(n=_need_count(tags)))};}}"
-    for key, tags in live_chips
+# Options come from the data, not from the full taxonomy, so a category no org
+# offers is never a dead end.
+all_categories = sorted(
+    {c for lst in df["Categories"] for c in lst}, key=CATEGORY_ORDER.index
 )
-st.markdown(f"<style>{_need_css}</style>", unsafe_allow_html=True)
 
+# One-tap shortcuts for the five needs people search for most. Only offer a
+# chip that leads somewhere: a tag no org carries would empty the map.
+available = {t for lst in df["SvcCanonical"] for t in lst}
+live_chips = [
+    (key, tags) for key, tags in QUICK_FILTERS if available.intersection(tags)
+]
+current_svcs = st.session_state.get("sel_svcs", [])
+
+# The finder: one card that reads top to bottom as a question and its answers.
+# The common needs lead, because most visitors arrive with one of them in mind;
+# search and category follow for everything else.
 try:
     filters_box = st.container(key="gwi_filters")
 except TypeError:
@@ -2301,19 +2083,17 @@ with filters_box:
     except TypeError:
         chips_box = st.container()
     with chips_box:
-        for col, (key, pairs) in zip(st.columns(len(live_chips)), live_chips):
+        for col, (key, tags) in zip(st.columns(len(live_chips)), live_chips):
             col.button(
                 _(key),
                 key=f"quick_{key}",
-                width="stretch",
+                use_container_width=True,
                 on_click=_apply_quick_filter,
-                args=(pairs,),
-                type="primary" if current_svcs == sorted(pairs) else "secondary",
+                args=(tags,),
+                type="primary" if current_svcs == tags else "secondary",
             )
 
-    c_search, c_cat, c_type, c_open = st.columns(
-        [3.3, 3.5, 2.3, 2], vertical_alignment="bottom"
-    )
+    c_search, c_cat, c_open = st.columns([5, 4, 2], vertical_alignment="bottom")
     with c_search:
         search = st.text_input(
             _("search_label"), placeholder=_("search_placeholder_main"), key="search"
@@ -2324,76 +2104,88 @@ with filters_box:
             all_categories,
             key="sel_cats",
             placeholder=_("category_placeholder"),
-            format_func=lambda c: category_label(c, _lang),
+            format_func=lambda c: category_label(c, st.session_state["lang"]),
         )
-    with c_type:
-        all_org_types = sorted({t for t in df["OrgType"] if t})
-        org_type_labels = [_("orgtype_all")] + [_org_type_label(t) for t in all_org_types]
-        org_type_label_to_raw = {_("orgtype_all"): "All"}
-        org_type_label_to_raw.update({_org_type_label(t): t for t in all_org_types})
-        # A label from the other language survives a language switch in state;
-        # map it back to "All" rather than letting the selectbox reject it.
-        if st.session_state.get("sel_org_type_label") not in org_type_labels:
-            st.session_state["sel_org_type_label"] = _("orgtype_all")
-        sel_org_type_label = st.selectbox(
-            _("orgtype_label"), org_type_labels, key="sel_org_type_label"
-        )
-        sel_org_type = org_type_label_to_raw[sel_org_type_label]
     with c_open:
         open_now_only = st.toggle(
             _("filter_open_now"), key="open_now", help=_("filter_open_now_help")
         )
 
-    # Specific services, one row of pills per chosen category.
-    svc_by_cat: dict[str, list[str]] = {}
-    if sel_cats:
-        try:
-            svc_box = st.container(key="gwi_svcs")
-        except TypeError:
-            svc_box = st.container()
-        with svc_box:
-            for c in sel_cats:
-                opts = services_in.get(c, [])
-                if not opts:
-                    continue
-                picked = st.pills(
-                    _("services_in").format(cat=category_label(c, _lang)),
-                    opts,
-                    selection_mode="multi",
-                    key=SVC_KEY + c,
-                    format_func=lambda s, c=c: (
-                        f"{specific_label(c, s, _lang)} ({svc_counts[(c, s)]})"
-                    ),
-                )
-                if picked:
-                    svc_by_cat[c] = list(picked)
-    else:
-        st.markdown(
-            f"<p class='gwi-hint-line'>{_('services_hint')}</p>",
-            unsafe_allow_html=True,
-        )
 
-sel_svcs = [s for lst in svc_by_cat.values() for s in lst]
+# ── sidebar ───────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown(
+        f"<p class='gwi-side-h'>{_('filters_heading')}</p>"
+        f"<p style='font-size:14px;color:{TEXT_MID};margin:0 0 16px;'>"
+        f"{_('more_filters_hint')}</p>",
+        unsafe_allow_html=True,
+    )
+
+    in_data = {s for lst in df["SvcCanonical"] for s in lst}
+
+    # Picking a category narrows the service list to that category's services,
+    # so this dropdown is a short menu of what is actually inside the area you
+    # chose rather than all 76 every time.
+    if sel_cats:
+        scoped = {s for s in in_data if TAGS[s][0] in sel_cats}
+        # A category whose services all sit under a different home category
+        # would leave an empty menu; fall back to the full list rather than a
+        # dropdown with nothing in it.
+        all_services = sorted(scoped or in_data, key=sort_key)
+    else:
+        all_services = sorted(in_data, key=sort_key)
+
+    # Selections made before the category changed can fall outside the new
+    # option list, which Streamlit rejects. Prune them here — legal because the
+    # widget below has not been instantiated yet this run.
+    kept = [s for s in st.session_state.get("sel_svcs", []) if s in all_services]
+    if kept != st.session_state.get("sel_svcs", []):
+        st.session_state["sel_svcs"] = kept
+
+    # With a single category chosen every option would repeat that category
+    # name, so the prefix is dropped and the label is just the service.
+    one_cat = len({TAGS[s][0] for s in all_services}) == 1
+    sel_svcs = st.multiselect(
+        _("services_label"),
+        all_services,
+        key="sel_svcs",
+        placeholder=_("services_placeholder"),
+        format_func=(
+            (lambda tag: tag_label(tag, st.session_state["lang"]))
+            if one_cat
+            else (lambda tag: display_label(tag, st.session_state["lang"]))
+        ),
+    )
+
+    all_org_types = sorted({t for t in df["OrgType"] if t})
+    org_type_labels = [_("orgtype_all")] + [_org_type_label(t) for t in all_org_types]
+    org_type_label_to_raw = {_("orgtype_all"): "All"}
+    org_type_label_to_raw.update({_org_type_label(t): t for t in all_org_types})
+    sel_org_type_label = st.selectbox(
+        _("orgtype_label"), org_type_labels, key="sel_org_type_label"
+    )
+    sel_org_type = org_type_label_to_raw[sel_org_type_label]
+
+    st.divider()
+    st.button(_("reset_button"), use_container_width=True, on_click=_reset_filters)
+    st.caption(_("orgs_total").format(n=len(df)))
 
 
 # ── apply filters ─────────────────────────────────────────────────────────────
 filtered = df.copy()
 
 if search:
-    # Stem-aware matching with a small alias list; see search_utils.py.
+    # Stem-aware matching with a small alias list — see search_utils.py.
     # Plain substring matching missed "diapers" against "Diaper Distribution"
     # and treated ESL/ESOL as unrelated.
-    # Each org's specific services, canonical tags and categories are searched
-    # too, in English and Spanish, so a Spanish speaker typing "comida" or
-    # "vivienda" finds what an English speaker finds with "food" or "housing".
-    # Accents are folded both ways: phone keyboards often drop them ("ingles",
-    # "credito").
+    # Each org's canonical service tags and categories are searched too, in
+    # English and Spanish, so a Spanish speaker typing "comida" or "vivienda"
+    # finds what an English speaker finds with "food" or "housing". Accents are
+    # folded both ways: phone keyboards often drop them ("ingles", "credito").
     def _row_matches(row) -> bool:
         tags = row["SvcCanonical"]
         blob = " ".join(
             [str(row[c]) for c in ("Name", "ServiceArea", "Services", "City")]
-            + [s for _c, s in row["Specifics"]]
-            + [specific_label(c, s, "es") for c, s in row["Specifics"]]
             + list(tags)
             + [TAGS[t][1] for t in tags if t in TAGS]
             + [category_label(c, "es") for c in row["Categories"]]
@@ -2403,26 +2195,20 @@ if search:
     filtered = filtered[filtered.apply(_row_matches, axis=1)]
 
 if sel_cats:
-    # Per category: if specific services are picked there, an org must offer
-    # one of them; otherwise anything in the category counts. Categories are
-    # OR'd, so picking a service in one category never hides another category.
-    def _cat_match(row) -> bool:
-        for c in sel_cats:
-            picked = svc_by_cat.get(c)
-            if picked:
-                if any((c, s) in row["Specifics"] for s in picked):
-                    return True
-            elif c in row["Categories"]:
-                return True
-        return False
+    filtered = filtered[
+        filtered["Categories"].apply(lambda lst: any(c in lst for c in sel_cats))
+    ]
 
-    filtered = filtered[filtered.apply(_cat_match, axis=1)]
+if sel_svcs:
+    filtered = filtered[
+        filtered["SvcCanonical"].apply(lambda lst: any(s in lst for s in sel_svcs))
+    ]
 
 if sel_org_type != "All":
     filtered = filtered[filtered["OrgType"] == sel_org_type]
 
 if open_now_only:
-    # Orgs that publish no hours are excluded rather than assumed open; this
+    # Orgs that publish no hours are excluded rather than assumed open — this
     # filter is used to decide whether to travel somewhere now.
     _now = _now_local()
     filtered = filtered[
@@ -2433,9 +2219,11 @@ if open_now_only:
 
 n_filtered = len(filtered)
 n_total = len(df)
-has_filters = bool(search or sel_cats or sel_org_type != "All" or open_now_only)
+has_filters = bool(
+    search or sel_cats or sel_svcs or sel_org_type != "All" or open_now_only
+)
 
-count_col, clear_col = st.columns([6, 1.2], vertical_alignment="center")
+count_col, clear_col = st.columns([6, 1], vertical_alignment="center")
 with count_col:
     txt = (
         _("showing_all").format(n=f"<b>{n_total}</b>")
@@ -2450,7 +2238,7 @@ with clear_col:
             key="clear_main",
             on_click=_reset_filters,
             type="tertiary",
-            width="stretch",
+            use_container_width=True,
         )
 
 # ── tabs ──────────────────────────────────────────────────────────────────────
@@ -2635,7 +2423,7 @@ with tab_map:
         if site_registry:
             _MapScript(_site_toggle_js(m, site_registry, all_org_markers)).add_to(m)
 
-        st_folium(m, width="stretch", height=620, returned_objects=[])
+        st_folium(m, use_container_width=True, height=620, returned_objects=[])
         st.caption(_("map_caption").format(n=len(map_data)))
         if FEEDBACK_FORM_URL:
             st.caption(f"[{_('missing_org')}]({FEEDBACK_FORM_URL})")
@@ -2741,7 +2529,7 @@ with tab_dir:
             )
         st.dataframe(
             dir_df,
-            width="stretch",
+            use_container_width=True,
             height=520,
             column_config={
                 _("open_now_col"): st.column_config.CheckboxColumn(
@@ -2886,7 +2674,7 @@ with tab_detail:
                         )
                         title = loc.get("LocationName", "").strip()
                         if loc.get("Kind") == "admin":
-                            title += f" ({_('loc_admin_badge')})"
+                            title += f" — {_('loc_admin_badge')}"
                         with st.expander(title, expanded=len(detail_locs) <= 6):
                             if loc.get("ServicesHere", "").strip():
                                 st.markdown(f"**{loc['ServicesHere'].strip()}**")
@@ -2922,24 +2710,14 @@ with tab_detail:
                     location=[row["Latitude"], row["Longitude"]],
                     tooltip=row["Name"],
                     icon=folium.DivIcon(
-                        html=_pin_svg(ACCENT),
+                        html=_pin_svg(BRICK),
                         icon_size=(25, 41),
                         icon_anchor=(12, 41),
                         class_name="empty",
                     ),
                 ).add_to(mini)
                 st_folium(
-                    mini, width="stretch", height=300, returned_objects=[]
+                    mini, use_container_width=True, height=300, returned_objects=[]
                 )
             else:
                 st.info(_("no_map_coords"))
-
-
-# ── footer ────────────────────────────────────────────────────────────────────
-st.markdown(
-    f'<footer class="gwi-foot"><p>{_("footer_checked")} '
-    f'<a {feedback_attrs} style="{feedback_extra}">{_("footer_missing")}</a></p>'
-    f'<p class="gwi-foot-credit"><a href="{HERO_PHOTO_PAGE}" target="_blank" '
-    f'rel="noopener noreferrer">{_("footer_photo")}</a></p></footer>',
-    unsafe_allow_html=True,
-)

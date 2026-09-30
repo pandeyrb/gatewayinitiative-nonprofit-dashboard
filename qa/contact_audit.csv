@@ -1,0 +1,15 @@
+Kind,Org,Site,Field,Stored,Found,Note
+org,Essex County Habitat For Humanity,,hours,Lawrence ReStore: Tue–Sat 10 AM–5 PM; Main office: Mon–Fri 8:30 AM–1:30 PM (Danvers; appointments recommended),partial,"times not on source page: 1:30p, 8:30a"
+org,Greater Lawrence Family Health,,phone,multiple locations,not a number,site could not be fetched
+org,Greater Lawrence Technical School,,pin,"42.69696, -71.19804","42.69232, -71.20276","pin is 644 m from the Census point for 57 RIVER RD, ANDOVER, MA, 01810"
+org,Hands to Help,,pin,"42.66788, -71.12100","42.67144, -71.12362","pin is 449 m from the Census point for 315 TURNPIKE ST, NORTH ANDOVER, MA, 01845"
+org,Lawrence Public Library,,address,51 Lawrence Street,,Census geocoder found no match for this street address
+org,Notre Dame Cristo Rey,,address,203 Lawrence Street,,Census geocoder found no match for this street address
+org,Partners for Child Development,,address,32 Osgood Street,,Census geocoder found no match for this street address
+org,Sevita Health,,phone,9787947966,missing,phone digits not seen on the org's site
+org,St. Mary's Parish,,phone,978-685-1111,unreachable,site could not be fetched
+org,St. Patrick's Catholic Church,,hours,"Mass: Sat 4 PM (English); Sun 7 AM, 10 AM, 5:30 PM (English), 8:30 AM & 12:30 PM (Spanish), 3 PM (Vietnamese); Mon–Sat 7 AM; Tue & Fri 7 PM (Spanish); Confession: Fri 6–6:45 PM; Sat 3–3:45 PM",partial,times not on source page: 12:30p
+org,The Institute for Career Transitions,,address,REMOTE,,Census geocoder found no match for this street address
+org,City of Lawrence,,hours,Mon 8:30 AM–4:30 PM; Tue 8:30 AM–7 PM; Wed–Thu 8:30 AM–4:30 PM; Fri 8:30 AM–1:30 PM,partial,times not on source page: 4:30p
+location,Neighbors in Need,St. Andrew's Church,address,90 Broadway,,Census geocoder found no match for this street address
+location,Partners for Child Development,Andover Office (main),address,32 Osgood Street,,Census geocoder found no match for this street address
