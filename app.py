@@ -3,6 +3,7 @@ GWI Nonprofit Partner Explorer  —  Streamlit app
 Run:  streamlit run app.py
 """
 
+import html
 import json
 import os
 import re
@@ -27,16 +28,12 @@ from hours import (
     parse_hours,
     weekly_grid,
 )
-from search_utils import matches as _search_matches
+import search_utils
+from data_source import load_from_supabase, taxonomy_from_code
+from search_engine import GeminiMatcher, smart_search, spelling_fixes
 from service_taxonomy import (
-    CATEGORY_ORDER,
-    QUICK_FILTERS,
-    SPECIFIC_ORDER,
-    TAGS,
     canonical_tags,
-    category_label,
     org_categories,
-    specific_label,
     specifics_for,
 )
 
@@ -443,13 +440,25 @@ T = {
     "en": {
         "search_label": "Or search",
         "search_placeholder": "Name, city, or service…",
-        "search_placeholder_main": "Search for food, rent help, ESL, or an organization…",
+        "search_placeholder_main": "Search for food, rent help, ESL… or describe what you need",
+        "search_ai_note": "Longer searches are matched by Google's AI. Please don't include names or personal details.",
+        "search_try": "Try a search",
+        "search_examples": "I can't pay my rent|I'm hungry|ESL classes|I lost my job|I need a doctor|free clothes for my kids",
+        "search_fixed": "Showing results for {q}",
+        "ai_searching": "Finding the best matches…",
+        "ai_matches_heading": "Best matches for your search",
+        "ai_matches_note": "Suggested by AI from each organization's listed services. Confirm details with the organization.",
         "category_label": "Category",
         "category_placeholder": "All categories",
         "orgtype_label": "Organization Type",
         "orgtype_all": "All",
         "page_heading": "Lawrence Resource Finder",
         "showing_all": "Showing all {n} organizations",
+        "results_heading": "Top results",
+        "results_more": "{n} more on the map and in the directory below.",
+        "ai_match": "Why it fits",
+        "call": "Call",
+        "empty_title": "No matches yet",
         "showing_filtered": "Showing {n} of {total} organizations",
         "nav_cta": "Ask AI assistant",
         "nav_cta_help": "Opens Google Gemini in a new tab. It needs a Google sign-in, and some work and city computers block it.",
@@ -548,8 +557,6 @@ T = {
         "quick_jobs": "Jobs & training",
         "clear_filters": "Clear filters",
         "stat_orgs": "local organizations",
-        "stat_services": "kinds of help",
-        "stat_towns": "towns covered",
         "hero_alt": "The green Duck Bridge over the Merrimack River, with the Ayer Mill clock tower behind it",
         "need_food": "Pantries and free meals",
         "need_housing": "Rent help and shelters",
@@ -567,13 +574,25 @@ T = {
     "es": {
         "search_label": "O busque",
         "search_placeholder": "Nombre, ciudad o servicio…",
-        "search_placeholder_main": "Buscar comida, vivienda, inglés o una organización…",
+        "search_placeholder_main": "Buscar comida, vivienda, inglés… o describa lo que necesita",
+        "search_ai_note": "Las búsquedas más largas se procesan con la IA de Google. Por favor, no incluya nombres ni datos personales.",
+        "search_try": "Pruebe una búsqueda",
+        "search_examples": "No puedo pagar la renta|Necesito comida|Clases de inglés|Necesito trabajo|Necesito un médico|Ropa para mis hijos",
+        "search_fixed": "Mostrando resultados para {q}",
+        "ai_searching": "Buscando los mejores resultados…",
+        "ai_matches_heading": "Mejores resultados para su búsqueda",
+        "ai_matches_note": "Sugerido por IA según los servicios que publica cada organización. Confirme los detalles con la organización.",
         "category_label": "Categoría",
         "category_placeholder": "Todas las categorías",
         "orgtype_label": "Tipo de Organización",
         "orgtype_all": "Todos",
         "page_heading": "Buscador de Recursos de Lawrence",
         "showing_all": "Mostrando las {n} organizaciones",
+        "results_heading": "Mejores resultados",
+        "results_more": "{n} más en el mapa y el directorio abajo.",
+        "ai_match": "Por qué encaja",
+        "call": "Llamar",
+        "empty_title": "Sin resultados",
         "showing_filtered": "Mostrando {n} de {total} organizaciones",
         "nav_cta": "Preguntar al asistente de IA",
         "nav_cta_help": "Abre Google Gemini en una pestaña nueva. Requiere iniciar sesión con Google, y algunas computadoras del trabajo o de la ciudad lo bloquean.",
@@ -672,8 +691,6 @@ T = {
         "quick_jobs": "Empleo y capacitación",
         "clear_filters": "Borrar filtros",
         "stat_orgs": "organizaciones locales",
-        "stat_services": "tipos de ayuda",
-        "stat_towns": "pueblos",
         "hero_alt": "El puente verde Duck Bridge sobre el río Merrimack, con la torre del reloj de Ayer Mill detrás",
         "need_food": "Despensas y comidas gratis",
         "need_housing": "Ayuda con alquiler y refugios",
@@ -705,6 +722,13 @@ if "lang" not in st.session_state:
 
 def _(key: str) -> str:
     return T[st.session_state["lang"]][key]
+
+
+def _description(row) -> str:
+    """The org's plain-language summary, in Spanish when there is one."""
+    if st.session_state["lang"] == "es" and str(row.get("DescriptionEs", "")).strip():
+        return str(row["DescriptionEs"]).strip()
+    return str(row.get("Description", "")).strip()
 
 
 def _org_type_label(org_type: str) -> str:
@@ -769,13 +793,26 @@ st.markdown(
   h1,h2,h3,h4,h5,h6 {{ color:{INK} !important; line-height:1.2; }}
 
   /* ── top bar ── */
-  .gwi-links {{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; }}
-  .gwi-link {{ color:{TEXT_MID} !important; font-size:14px; font-weight:500;
-    text-decoration:underline; text-underline-offset:3px;
-    text-decoration-color:{BORDER_STRONG}; }}
-  .gwi-link--strong {{ color:{ACCENT} !important; font-weight:600;
-    text-decoration-color:{ACCENT}; }}
-  .gwi-link:hover {{ text-decoration-color:currentColor; }}
+  /* Apple-style capsule buttons: one filled (the main action), one tinted. */
+  .gwi-links {{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }}
+  .gwi-btn {{ display:inline-flex; align-items:center; gap:8px;
+    min-height:48px; padding:0 22px; border-radius:999px;
+    font-size:16px; font-weight:600; letter-spacing:-.01em;
+    text-decoration:none !important; white-space:nowrap;
+    transition:transform .15s ease, box-shadow .2s ease, background .2s ease,
+      filter .2s ease; }}
+  .gwi-btn svg {{ flex:none; }}
+  .gwi-btn--fill {{ color:#fff !important;
+    background:linear-gradient(180deg, {ACCENT} 0%, {ACCENT_DEEP} 100%);
+    box-shadow:0 1px 0 rgba(255,255,255,.18) inset,
+      0 8px 20px -10px {ACCENT}; }}
+  .gwi-btn--fill:hover {{ filter:brightness(1.08); transform:translateY(-1px);
+    box-shadow:0 1px 0 rgba(255,255,255,.18) inset,
+      0 12px 24px -10px {ACCENT}; }}
+  .gwi-btn--tint {{ color:{ACCENT} !important; background:{ACCENT_TINT}; }}
+  .gwi-btn--tint:hover {{ background:{ACCENT_TINT_HOVER}; transform:translateY(-1px); }}
+  .gwi-btn:active {{ transform:scale(.97); }}
+  .gwi-btn:focus-visible {{ outline:3px solid {ACCENT}; outline-offset:3px; }}
   .st-key-lang_radio {{ display:flex; justify-content:flex-end; }}
 
   /* ── hero ── */
@@ -869,6 +906,29 @@ st.markdown(
   .stTextInput input {{ font-size:16px !important; }}
   .stTextInput input::placeholder {{ color:{TEXT_MUTED}; }}
 
+  /* Main search: an Apple-style search field - filled, borderless, rounded,
+     with a magnifying glass, lifting to white with a soft ring on focus. */
+  .st-key-search .react-aria-TextField > div {{
+    background-color:{BG_TINT} !important; border:1px solid transparent !important;
+    border-radius:14px !important; min-height:52px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%238a8f98' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5L20 20'/%3E%3C/svg%3E") !important;
+    background-repeat:no-repeat !important; background-position:16px center !important;
+    transition:background-color .2s ease, box-shadow .2s ease, border-color .2s ease; }}
+  .st-key-search .react-aria-TextField > div:hover {{
+    border-color:{BORDER_STRONG} !important; }}
+  .st-key-search .react-aria-TextField > div:focus-within {{
+    background-color:{BG_WHITE} !important; border-color:{ACCENT} !important;
+    box-shadow:0 0 0 4px {ACCENT_TINT}, 0 6px 18px -10px rgba(19,35,42,.35); }}
+  .gwi-fixed {{ font-size:15px !important; color:{TEXT_MID}; margin:-4px 0 6px !important; }}
+  .gwi-fixed b {{ color:{ACCENT}; font-weight:650; font-style:italic; }}
+  .st-key-search_example {{ margin-top:-6px; }}
+  .st-key-search_example button {{ min-height:32px !important; background:{BG_TINT} !important;
+    border-color:transparent !important; }}
+  .st-key-search_example button p {{ font-size:13.5px !important; color:{TEXT_MID} !important; }}
+  .st-key-search_example button:hover {{ border-color:{ACCENT} !important; }}
+  .st-key-search input {{ background:transparent !important; padding-left:46px !important;
+    font-size:17px !important; letter-spacing:-.01em; }}
+
   /* Selected categories/services. */
   [data-baseweb="tag"], [data-baseweb="tag"] * {{
     background:{ACCENT_TINT} !important; color:{ACCENT} !important; }}
@@ -876,11 +936,79 @@ st.markdown(
   [data-baseweb="tag"] svg {{ fill:{ACCENT} !important; }}
 
   /* ── results line + tabs ── */
-  .gwi-count {{ color:{TEXT_MID}; font-size:16px; margin:0; }}
-  .st-key-clear_main button {{ justify-content:flex-end; }}
-  .st-key-clear_main button p {{ color:{ACCENT} !important; font-weight:600 !important;
-    text-decoration:underline; text-underline-offset:3px; }}
+  .gwi-count {{ color:{TEXT_MID}; font-size:17px; margin:0; letter-spacing:-.01em; }}
   .gwi-count b {{ color:{INK}; font-weight:700; }}
+  .st-key-clear_main {{ display:flex; justify-content:flex-end; }}
+  .st-key-clear_main button {{ background:{ACCENT_TINT} !important; border-radius:999px !important;
+    min-height:36px; padding:0 16px !important; width:auto !important;
+    transition:background .2s ease; }}
+  .st-key-clear_main button:hover {{ background:{ACCENT_TINT_HOVER} !important; }}
+  .st-key-clear_main button p {{ color:{ACCENT} !important; font-weight:600 !important;
+    font-size:14px !important; }}
+
+  /* ── search results: Apple-style cards ── */
+  .gwi-res-h {{ display:flex; align-items:baseline; justify-content:space-between;
+    gap:12px; margin:22px 0 12px; }}
+  .gwi-res-t {{ font-family:{DISPLAY_STACK}; font-size:24px; font-weight:700;
+    letter-spacing:-.02em; color:{INK}; line-height:1.2; }}
+  .gwi-res-h span {{ color:{TEXT_MUTED}; font-size:14px; }}
+  .gwi-res {{ display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr));
+    gap:14px; margin-bottom:10px; }}
+  .gwi-card {{ background:{BG_WHITE}; border-radius:18px; padding:18px 18px 16px;
+    border:1px solid {BORDER}; display:flex; flex-direction:column; gap:10px;
+    box-shadow:0 1px 2px rgba(19,35,42,.05), 0 8px 24px -16px rgba(19,35,42,.28);
+    transition:transform .2s ease, box-shadow .2s ease; }}
+  .gwi-card:hover {{ transform:translateY(-2px);
+    box-shadow:0 1px 2px rgba(19,35,42,.06), 0 16px 32px -18px rgba(19,35,42,.38); }}
+  .gwi-card-top {{ display:flex; gap:12px; align-items:flex-start; }}
+  .gwi-card-n {{ flex:none; width:28px; height:28px; border-radius:50%;
+    background:{ACCENT_TINT}; color:{ACCENT}; font-size:13px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; margin-top:1px; }}
+  .gwi-card-t {{ flex:1; min-width:0; }}
+  .gwi-card-name {{ font-size:17px !important; font-weight:650; color:{INK}; line-height:1.3;
+    letter-spacing:-.01em; margin:0 !important; }}
+  .gwi-card-about {{ font-size:14px !important; line-height:1.45; color:{TEXT_MID};
+    margin:0 !important; display:-webkit-box; -webkit-line-clamp:3;
+    -webkit-box-orient:vertical; overflow:hidden; }}
+  .gwi-detail-about {{ font-size:16px !important; line-height:1.55; color:{INK};
+    margin:10px 0 0 !important; max-width:760px; }}
+  .gwi-card-meta {{ font-size:13px !important; color:{TEXT_MUTED}; margin:2px 0 0 !important; }}
+  .gwi-pill {{ display:inline-flex; align-items:center; gap:6px; font-size:12px;
+    font-weight:600; border-radius:999px; padding:3px 10px; width:fit-content; }}
+  .gwi-pill::before {{ content:""; width:6px; height:6px; border-radius:50%;
+    background:currentColor; }}
+  .gwi-pill--open {{ background:#e3f1e8; color:#1b6b45; }}  /* OPEN_GREEN(_BG) */
+  .gwi-pill--closed {{ background:{BG_TINT}; color:{TEXT_MID}; }}
+  .gwi-pill--unknown {{ background:transparent; color:{TEXT_MUTED}; padding-left:0; }}
+  .gwi-pill--unknown::before {{ display:none; }}
+  .gwi-why {{ background:{ACCENT_TINT}; border-radius:12px; padding:10px 12px;
+    font-size:14px; line-height:1.45; color:{INK}; }}
+  .gwi-why b {{ display:flex; align-items:center; gap:5px; color:{ACCENT};
+    font-size:12px; font-weight:650; margin-bottom:2px; }}
+  .gwi-tags {{ display:flex; flex-wrap:wrap; gap:6px; }}
+  .gwi-tags span {{ background:{BG_TINT}; color:{TEXT_MID}; border-radius:8px;
+    padding:3px 9px; font-size:12.5px; }}
+  .gwi-acts {{ display:flex; gap:8px; margin-top:auto; padding-top:4px; flex-wrap:wrap; }}
+  .gwi-act {{ flex:1 1 0; display:inline-flex; align-items:center; justify-content:center;
+    gap:6px; min-height:38px; padding:0 12px; border-radius:999px;
+    background:{BG_TINT}; color:{ACCENT} !important; font-size:14px; font-weight:600;
+    text-decoration:none !important; white-space:nowrap;
+    transition:background .2s ease, transform .1s ease; }}
+  .gwi-act:hover {{ background:{ACCENT_TINT_HOVER}; }}
+  .gwi-act:active {{ transform:scale(.97); }}
+  .gwi-act--primary {{ background:{ACCENT}; color:#fff !important; }}
+  .gwi-act--primary:hover {{ background:{ACCENT_DEEP}; }}
+  .gwi-res-note {{ color:{TEXT_MUTED}; font-size:13px !important; margin:4px 0 18px !important; }}
+
+  /* Empty state: calm and centred, not an alarm. */
+  .gwi-empty {{ text-align:center; padding:44px 20px; border-radius:18px;
+    background:{BG_WHITE}; border:1px solid {BORDER}; margin:6px 0; }}
+  .gwi-empty-ic {{ width:56px; height:56px; border-radius:50%; margin:0 auto 14px;
+    background:{BG_TINT}; color:{TEXT_MUTED}; display:flex; align-items:center;
+    justify-content:center; }}
+  .gwi-empty h4 {{ font-size:19px !important; font-weight:650 !important; margin:0 0 6px !important;
+    padding:0 !important; letter-spacing:-.01em; }}
+  .gwi-empty p {{ color:{TEXT_MID}; font-size:15px; margin:0 auto; max-width:420px; }}
   /* Tabs as a segmented bar: the current view is obvious at a glance. */
   [data-testid="stTabs"] [role="tablist"] {{ gap:4px; background:{BG_TINT};
     padding:4px; border-radius:12px; width:fit-content; border:none; }}
@@ -925,6 +1053,10 @@ st.markdown(
   @media (max-width: 640px) {{
     .block-container {{ padding-top:1rem; }}
     .st-key-lang_radio {{ justify-content:flex-start; }}
+    .gwi-links {{ gap:10px; }}
+    .gwi-res {{ grid-template-columns:1fr; }}
+    .gwi-btn {{ flex:1 1 auto; justify-content:center; min-height:46px;
+      padding:0 18px; font-size:15px; }}
     .gwi-hero {{ grid-template-columns:1fr; min-height:0; border-radius:16px; }}
     .gwi-hero-img {{ order:-1; min-height:170px; background-position:center 30%; }}
     .gwi-hero-tx {{ padding:24px 22px 76px; gap:20px; }}
@@ -1108,14 +1240,100 @@ def load_locations(path: str) -> dict[str, list[dict]]:
     return out
 
 
-df = load_data(CSV_PATH)
-locations = load_locations(LOCATIONS_PATH)
+# ── data source ───────────────────────────────────────────────────────────────
+# DATA_SOURCE in .streamlit/secrets.toml picks where the data comes from:
+# "supabase" (the database) or "csv" (the files in data/, the old way).
+# With no secrets file at all, the CSVs are used.
+try:
+    DATA_SOURCE = str(st.secrets.get("DATA_SOURCE", "csv")).lower()
+except Exception:
+    DATA_SOURCE = "csv"
 
-if df.empty:
-    st.error(
-        f"**Data file not found:** `{CSV_PATH}`\n\nMake sure `{CSV_PATH}` is next to `app.py`."
-    )
-    st.stop()
+if DATA_SOURCE == "supabase":
+    try:
+        df, locations, tax = load_from_supabase()
+    except Exception as exc:
+        st.error(
+            "**Couldn't load the directory from the database.** "
+            "Try again in a minute; if it keeps happening, check the Supabase project."
+        )
+        st.caption(f"{type(exc).__name__}: {exc}")
+        st.stop()
+    df = df.copy()  # the cached frame is shared between reruns; don't edit it in place
+    df["Phone"] = df["Phone"].apply(_format_phone)
+else:
+    df = load_data(CSV_PATH)
+    locations = load_locations(LOCATIONS_PATH)
+    tax = taxonomy_from_code()
+    if df.empty:
+        st.error(
+            f"**Data file not found:** `{CSV_PATH}`\n\nMake sure `{CSV_PATH}` is next to `app.py`."
+        )
+        st.stop()
+
+# The rest of the app uses these names; they now come from whichever source ran.
+CATEGORY_ORDER = tax.category_order
+SPECIFIC_ORDER = tax.specific_order
+QUICK_FILTERS = tax.quick_filters
+# search_utils reads its alias list at search time, so swapping it here makes
+# synonyms edited in the database take effect.
+search_utils.ALIAS_GROUPS = tax.alias_groups
+
+
+def category_label(category: str, lang: str = "en") -> str:
+    return tax.category_es.get(category, category) if lang == "es" else category
+
+
+def specific_label(category: str, specific: str, lang: str = "en") -> str:
+    if lang == "es":
+        return tax.specific_es.get((category, specific), specific)
+    return specific
+
+
+@st.cache_resource
+def _ai_matcher():
+    """The AI search layer, or None to use keyword search only.
+
+    Live site: credentials come from a [gcp_service_account] table in
+    Streamlit secrets. Locally: from .env, like the crawler. Set
+    AI_SEARCH = false in secrets to turn it off.
+    """
+    try:
+        secrets = st.secrets
+        if str(secrets.get("AI_SEARCH", "true")).lower() == "false":
+            return None
+        sa = secrets.get("gcp_service_account")
+        model = secrets.get("GEMINI_MODEL")
+        location = secrets.get("GEMINI_LOCATION")
+    except Exception:
+        sa = model = location = None
+    try:
+        if sa:
+            from google.oauth2 import service_account
+
+            creds = service_account.Credentials.from_service_account_info(
+                dict(sa), scopes=["https://www.googleapis.com/auth/cloud-platform"]
+            )
+            return GeminiMatcher(credentials=creds, project=sa["project_id"],
+                                 model=model, location=location)
+        return GeminiMatcher(model=model, location=location)
+    except Exception:
+        return None
+
+
+ai_matcher = _ai_matcher()
+
+
+def _quick_text(key: str, part: str) -> str:
+    """A quick-filter button's title ("label") or one-line description
+    ("desc"). From the database when it has them; otherwise from T."""
+    labels = tax.quick_labels.get(key)
+    if labels:
+        en, es, d_en, d_es = labels
+        if part == "label":
+            return es if st.session_state["lang"] == "es" else en
+        return (d_es if st.session_state["lang"] == "es" else d_en) or ""
+    return _(key) if part == "label" else _("need_" + key[6:])
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -2143,10 +2361,17 @@ def _apply_quick_filter(pairs: list[tuple[str, str]]) -> None:
         st.session_state[SVC_KEY + c] = [s for cc, s in pairs if cc == c]
 
 
+def _use_search_example() -> None:
+    picked = st.session_state.get("search_example")
+    if picked:
+        st.session_state["search"] = picked
+    st.session_state["search_example"] = None
+
+
 # ── page header ───────────────────────────────────────────────────────────────
 # Top bar: the secondary tools on the left, the language switch on the right.
-# With FEEDBACK_FORM_URL unset, feedback still renders but points nowhere and
-# says so on hover.
+# With FEEDBACK_FORM_URL unset, feedback still renders at full strength but
+# points nowhere and says so on hover.
 if FEEDBACK_FORM_URL:
     feedback_attrs = (
         f'href="{FEEDBACK_FORM_URL}" target="_blank" rel="noopener noreferrer"'
@@ -2154,17 +2379,28 @@ if FEEDBACK_FORM_URL:
     feedback_extra = ""
 else:
     feedback_attrs = f'href="#" title="{_("feedback_unset")}"'
-    feedback_extra = "opacity:.6;cursor:not-allowed;"
+    feedback_extra = "cursor:not-allowed;"
+
+# SF Symbols-style line icons; stroke follows the button's text colour.
+_SVG = ('<svg aria-hidden="true" width="{w}" height="{w}" viewBox="0 0 24 24" '
+        'fill="none" stroke="currentColor" stroke-width="2" '
+        'stroke-linecap="round" stroke-linejoin="round">{d}</svg>')
+_ICON_SPARKLE = _SVG.format(w=18, d=(
+    '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>'
+    '<path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'))
+_ICON_ARROW = _SVG.format(w=14, d='<path d="M7 17L17 7M8 7h9v9"/>')
+_ICON_BUBBLE = _SVG.format(w=18, d=(
+    '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>'))
 
 links_col, lang_col = st.columns([8, 3], vertical_alignment="center")
 with links_col:
     st.markdown(
         f'<div class="gwi-links">'
         f'<a href="{GEMINI_GEM_URL}" target="_blank" rel="noopener noreferrer" '
-        f'title="{_("nav_cta_help")}" class="gwi-link gwi-link--strong">'
-        f'{_("nav_cta")} &#8599;</a>'
-        f'<a {feedback_attrs} class="gwi-link" style="{feedback_extra}">'
-        f"{_('feedback_cta')}</a></div>",
+        f'title="{_("nav_cta_help")}" class="gwi-btn gwi-btn--fill">'
+        f'{_ICON_SPARKLE}<span>{_("nav_cta")}</span>{_ICON_ARROW}</a>'
+        f'<a {feedback_attrs} class="gwi-btn gwi-btn--tint" style="{feedback_extra}">'
+        f"{_ICON_BUBBLE}<span>{_('feedback_cta')}</span></a></div>",
         unsafe_allow_html=True,
     )
 with lang_col:
@@ -2189,7 +2425,7 @@ with lang_col:
         st.session_state["lang"] = lang_choice
         st.rerun()
 
-# Hero: the name, three real numbers from the data, and a photograph of the
+# Hero: the name, the number of organizations listed, and a photograph of the
 # city itself. The Duck Bridge's green is where the site's teal comes from.
 # Hotlinked from Wikimedia's CDN, which permits it; the licence (CC BY-SA 4.0)
 # requires the credit that sits in the footer.
@@ -2202,16 +2438,7 @@ HERO_PHOTO_PAGE = (
     "https://commons.wikimedia.org/wiki/"
     "File:The_Duck_Bridge_%26_Ayer_Mill_Lawrence,_Massachusetts.jpg"
 )
-_n_services = len({spec for pairs in df["Specifics"] for _c, spec in pairs})
-_n_towns = df["City"].str.strip().replace("", pd.NA).dropna().nunique()
-_stats = "".join(
-    f'<div class="gwi-stat"><b>{n}</b><span>{label}</span></div>'
-    for n, label in (
-        (len(df), _("stat_orgs")),
-        (_n_services, _("stat_services")),
-        (_n_towns, _("stat_towns")),
-    )
-)
+_stats = f'<div class="gwi-stat"><b>{len(df)}</b><span>{_("stat_orgs")}</span></div>'
 st.markdown(
     f'<section class="gwi-hero">'
     f'<div class="gwi-hero-tx"><h1 class="gwi-h1">{_("page_heading")}</h1>'
@@ -2281,7 +2508,7 @@ def _css_str(text: str) -> str:
 
 
 _need_css = "".join(
-    f".st-key-quick_{key} button::after{{content:{_css_str(_('need_' + key[6:]))};}}"
+    f".st-key-quick_{key} button::after{{content:{_css_str(_quick_text(key, 'desc'))};}}"
     f".st-key-quick_{key} button::before{{content:"
     f"{_css_str(_('need_count').format(n=_need_count(tags)))};}}"
     for key, tags in live_chips
@@ -2303,7 +2530,7 @@ with filters_box:
     with chips_box:
         for col, (key, pairs) in zip(st.columns(len(live_chips)), live_chips):
             col.button(
-                _(key),
+                _quick_text(key, "label"),
                 key=f"quick_{key}",
                 width="stretch",
                 on_click=_apply_quick_filter,
@@ -2311,13 +2538,40 @@ with filters_box:
                 type="primary" if current_svcs == sorted(pairs) else "secondary",
             )
 
-    c_search, c_cat, c_type, c_open = st.columns(
-        [3.3, 3.5, 2.3, 2], vertical_alignment="bottom"
+    # Search gets a full-width row of its own, so the long placeholder is
+    # readable and it reads as the main way in after the five needs.
+    search = st.text_input(
+        _("search_label"), placeholder=_("search_placeholder_main"), key="search"
     )
-    with c_search:
-        search = st.text_input(
-            _("search_label"), placeholder=_("search_placeholder_main"), key="search"
+    if search:
+        # Typos are corrected silently by the search; say so, like Google does,
+        # so a result for "immigration" doesn't look like a mismatch for "imigration".
+        _fixes = spelling_fixes(df, search, tax)
+        if _fixes:
+            _fixed = re.sub(
+                r"[\w'’]+",
+                lambda m: (f"<b>{html.escape(_fixes[_fold(m[0]).lower()])}</b>"
+                           if _fold(m[0]).lower() in _fixes else html.escape(m[0])),
+                search,
+            )
+            st.markdown(
+                f'<p class="gwi-fixed">{_("search_fixed").format(q=_fixed)}</p>',
+                unsafe_allow_html=True,
+            )
+    else:
+        # A blank box is the hardest place to start: offer a few searches that
+        # show it understands plain sentences, not just service names.
+        st.pills(
+            _("search_try"),
+            _("search_examples").split("|"),
+            key="search_example",
+            on_change=_use_search_example,
+            label_visibility="collapsed",
         )
+    if ai_matcher is not None:
+        st.caption(_("search_ai_note"))
+
+    c_cat, c_type, c_open = st.columns([4, 2.6, 2], vertical_alignment="bottom")
     with c_cat:
         sel_cats = st.multiselect(
             _("category_label"),
@@ -2379,28 +2633,15 @@ sel_svcs = [s for lst in svc_by_cat.values() for s in lst]
 # ── apply filters ─────────────────────────────────────────────────────────────
 filtered = df.copy()
 
+search_reasons: dict[str, str] = {}
 if search:
-    # Stem-aware matching with a small alias list; see search_utils.py.
-    # Plain substring matching missed "diapers" against "Diaper Distribution"
-    # and treated ESL/ESOL as unrelated.
-    # Each org's specific services, canonical tags and categories are searched
-    # too, in English and Spanish, so a Spanish speaker typing "comida" or
-    # "vivienda" finds what an English speaker finds with "food" or "housing".
-    # Accents are folded both ways: phone keyboards often drop them ("ingles",
-    # "credito").
-    def _row_matches(row) -> bool:
-        tags = row["SvcCanonical"]
-        blob = " ".join(
-            [str(row[c]) for c in ("Name", "ServiceArea", "Services", "City")]
-            + [s for _c, s in row["Specifics"]]
-            + [specific_label(c, s, "es") for c, s in row["Specifics"]]
-            + list(tags)
-            + [TAGS[t][1] for t in tags if t in TAGS]
-            + [category_label(c, "es") for c in row["Categories"]]
+    # All search logic lives in search_engine.py, shared with
+    # scripts/score_search.py so the score measures exactly what runs here.
+    # Results come back best-first; the filters below keep that order.
+    with st.spinner(_("ai_searching")):
+        filtered, search_reasons, _search_mode = smart_search(
+            filtered, search, tax, ai_matcher
         )
-        return _search_matches(_fold(search), _fold(blob))
-
-    filtered = filtered[filtered.apply(_row_matches, axis=1)]
 
 if sel_cats:
     # Per category: if specific services are picked there, an org must offer
@@ -2453,6 +2694,98 @@ with clear_col:
             width="stretch",
         )
 
+# ── search results ────────────────────────────────────────────────────────────
+# After a search, the first few matches as cards: the answer to "where do I
+# go?" without opening the map or the table. Order is the search's own ranking,
+# and an AI match carries its one-line reason. The rest stay in the tabs below.
+RESULT_CARDS = 6
+_ICON_PHONE = _SVG.format(w=15, d=(
+    '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 '
+    '1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 '
+    '2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 '
+    '2.7.7a2 2 0 0 1 1.7 2z"/>'))
+_ICON_GLOBE = _SVG.format(w=15, d=(
+    '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18'
+    'M12 3a14 14 0 0 0 0 18"/>'))
+_ICON_PIN = _SVG.format(w=15, d=(
+    '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/>'
+    '<circle cx="12" cy="9.5" r="2.5"/>'))
+_ICON_SEARCH = _SVG.format(w=26, d='<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>')
+
+
+def _result_card(rank: int, row) -> str:
+    esc = html.escape
+    name = str(row["Name"])
+    meta = " · ".join(
+        p for p in (_org_type_label(str(row.get("OrgType", ""))), str(row.get("City", "")).strip()) if p
+    )
+    state, detail, _label = open_status(
+        _schedules(row.get("Hours", "")), _now_local(), _day_names()
+    )
+    if state == "open":
+        pill = _("status_open").capitalize() + (
+            f" · {_('status_until').format(t=detail)}" if detail else "")
+    elif state == "closed":
+        pill = _("status_closed").capitalize() + (
+            f" · {_('status_opens').format(t=detail)}" if detail else "")
+    else:
+        pill = _("status_unknown")
+    why = ""
+    if name in search_reasons:
+        why = (f'<div class="gwi-why"><b>{_ICON_SPARKLE.replace("18", "13")}'
+               f'{_("ai_match")}</b>{esc(search_reasons[name])}</div>')
+    tags = "".join(f"<span>{esc(t)}</span>" for t in list(row.get("SvcTagList") or [])[:3])
+
+    acts = []
+    phone = str(row.get("Phone", "")).strip()
+    digits = re.sub(r"\D", "", phone)
+    if len(digits) >= 10:
+        acts.append(f'<a class="gwi-act gwi-act--primary" href="tel:+1{digits[-10:]}">'
+                    f'{_ICON_PHONE}{_("call")}</a>')
+    url = str(row.get("URL", "")).strip()
+    if url:
+        href = url if url.startswith("http") else f"https://{url}"
+        acts.append(f'<a class="gwi-act" href="{esc(href)}" target="_blank" '
+                    f'rel="noopener noreferrer">{_ICON_GLOBE}{_("sec_website")}</a>')
+    if pd.notna(row.get("Latitude")) and pd.notna(row.get("Longitude")):
+        acts.append(f'<a class="gwi-act" href="{_directions_url(row["Latitude"], row["Longitude"])}" '
+                    f'target="_blank" rel="noopener noreferrer">{_ICON_PIN}{_("get_directions")}</a>')
+
+    return (
+        f'<article class="gwi-card"><div class="gwi-card-top">'
+        f'<span class="gwi-card-n">{rank}</span><div class="gwi-card-t">'
+        f'<p class="gwi-card-name">{esc(name)}</p>'
+        + (f'<p class="gwi-card-meta">{esc(meta)}</p>' if meta else "")
+        + f'</div></div><span class="gwi-pill gwi-pill--{state}">{esc(pill)}</span>'
+        + (f'<p class="gwi-card-about">{esc(_description(row))}</p>' if _description(row) else "")
+        + why +(f'<div class="gwi-tags">{tags}</div>' if tags else "")
+        + (f'<div class="gwi-acts">{"".join(acts)}</div>' if acts else "")
+        + "</article>"
+    )
+
+
+def _empty_state() -> None:
+    st.markdown(
+        f'<div class="gwi-empty"><div class="gwi-empty-ic">{_ICON_SEARCH}</div>'
+        f'<h4>{_("empty_title")}</h4><p>{_("no_results")}</p></div>',
+        unsafe_allow_html=True,
+    )
+
+
+if search and not filtered.empty:
+    _top = filtered.head(RESULT_CARDS)
+    _rest = n_filtered - len(_top)
+    st.markdown(
+        f'<div class="gwi-res-h"><div class="gwi-res-t">{_("results_heading")}</div>'
+        + (f'<span>{_("results_more").format(n=_rest)}</span>' if _rest > 0 else "")
+        + '</div><div class="gwi-res">'
+        + "".join(_result_card(i, r) for i, (_ix, r) in enumerate(_top.iterrows(), 1))
+        + "</div>"
+        + (f'<p class="gwi-res-note">{_("ai_matches_note")}</p>'
+           if any(n in search_reasons for n in _top["Name"]) else ""),
+        unsafe_allow_html=True,
+    )
+
 # ── tabs ──────────────────────────────────────────────────────────────────────
 tab_map, tab_dir, tab_detail = st.tabs(
     [_("tab_map"), _("tab_directory"), _("tab_org_detail")]
@@ -2466,7 +2799,7 @@ with tab_map:
     map_data = filtered.dropna(subset=["Latitude", "Longitude"])
 
     if filtered.empty:
-        st.warning(_("no_results"))
+        _empty_state()
     elif map_data.empty:
         st.info(_("no_coords"))
     else:
@@ -2656,7 +2989,7 @@ with tab_map:
 # ══════════════════════════════════════════════════════════
 with tab_dir:
     if filtered.empty:
-        st.warning(_("no_results"))
+        _empty_state()
     else:
         dl_col, _dl_spacer = st.columns([2, 5])
         with dl_col:
@@ -2766,7 +3099,7 @@ with tab_dir:
 # ══════════════════════════════════════════════════════════
 with tab_detail:
     if filtered.empty:
-        st.warning(_("no_results"))
+        _empty_state()
     else:
         selected_name = st.selectbox(
             _("select_org"),
@@ -2784,7 +3117,10 @@ with tab_detail:
                 f'margin-bottom:8px;">'
                 f'<h2 class="gwi-detail-h">{row["Name"]}</h2>'
                 f'<p style="color:{TEXT_MID};font-size:15px;margin:4px 0 0;">'
-                f"{_org_type_label(row['OrgType'])}</p></div>",
+                f"{_org_type_label(row['OrgType'])}</p>"
+                + (f'<p class="gwi-detail-about">{html.escape(_description(row))}</p>'
+                   if _description(row) else "")
+                + "</div>",
                 unsafe_allow_html=True,
             )
 

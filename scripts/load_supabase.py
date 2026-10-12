@@ -40,6 +40,9 @@ from service_taxonomy import (  # noqa: E402
 
 ORGS_CSV = os.path.join(ROOT, "data", "GWIorgs_v6.csv")
 LOCATIONS_CSV = os.path.join(ROOT, "data", "org_locations.csv")
+# Approved summaries, written by scripts/load_descriptions.py. Read here so a
+# full reload keeps them instead of wiping them.
+DESCRIPTIONS_CSV = os.path.join(ROOT, "data", "org_descriptions.csv")
 SPECIFIC_CSV = os.path.join(ROOT, "data", "specific_services.csv")
 
 REGION = ("Lawrence", "MA")
@@ -95,7 +98,10 @@ def to_float(v):
 
 
 def same_address(a, b) -> bool:
-    return (a or "").strip().lower() == (b or "").strip().lower()
+    """Street part only: "60 Island Street, Suite 74A" == "60 Island Street"."""
+    def street(x):
+        return (x or "").split(",")[0].strip().lower()
+    return street(a) == street(b)
 
 
 # ── build every row in memory first ───────────────────────────────────────────
@@ -109,6 +115,11 @@ def build():
         sys.exit(f"org_locations.csv names orgs missing from GWIorgs_v6.csv: {sorted(unknown)}")
 
     data = {"notes": []}
+
+    descriptions = {}
+    if os.path.exists(DESCRIPTIONS_CSV):
+        d = pd.read_csv(DESCRIPTIONS_CSV, dtype=str).fillna("")
+        descriptions = {r.Name.strip(): (r.Description, r.DescriptionEs) for r in d.itertuples()}
 
     data["categories"] = [
         {"name_en": c, "name_es": CATEGORY_ES.get(c, c), "sort_order": i}
@@ -139,6 +150,12 @@ def build():
             "phone": clean(r["Phone"]),
             "strategic_plan_url": clean(r.get("Strategic Plan")),
             "impact_report_url": clean(r.get("Impact Report")),
+            # The org-wide hours summary; each site keeps its own hours below.
+            "hours_text": clean(r["Hours"]),
+            "hours_source_url": clean(r["HoursSourceURL"]),
+            "hours_verified_on": clean(r["HoursVerifiedOn"]),
+            "description": clean(descriptions.get(name, ("", ""))[0]),
+            "description_es": clean(descriptions.get(name, ("", ""))[1]),
         })
 
         # Same fallback as the app: no Services text -> use ServiceArea.
@@ -165,10 +182,12 @@ def build():
             "longitude": to_float(r["Longitude"]),
             "geo_source": None,
             "phone": clean(r["Phone"]),
-            "hours_text": clean(r["Hours"]),
+            # Hours and their source live on the organization row, so a
+            # single-site org's hours are stored once, not twice.
+            "hours_text": None,
             "services_here": None,
-            "source_url": clean(r["HoursSourceURL"]),
-            "verified_on": clean(r["HoursVerifiedOn"]),
+            "source_url": None,
+            "verified_on": None,
         }
 
         # Orgs with several sites: org_locations.csv is the detailed record.
@@ -196,7 +215,7 @@ def build():
                 "longitude": to_float(l["Longitude"]),
                 "geo_source": clean(l["GeoSource"]),
                 "phone": clean(l["Phone"]),
-                "hours_text": clean(l["Hours"]) or (main["hours_text"] if is_main else None),
+                "hours_text": clean(l["Hours"]),
                 "services_here": clean(l["ServicesHere"]),
                 "source_url": clean(l["SourceURL"]),
                 "verified_on": clean(l["VerifiedOn"]),

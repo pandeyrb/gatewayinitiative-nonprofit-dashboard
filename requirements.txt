@@ -3,3 +3,6 @@ folium
 streamlit-folium
 pandas
 requests
+supabase
+google-genai
+python-dotenv
