@@ -297,7 +297,9 @@ def correct_query(query: str, idx: "_Index") -> tuple[str, dict[str, str]]:
     for w in _words(query):
         known = w in idx.vocab_set or stem(w) in idx.vocab_stems
         if len(w) >= 4 and w not in STOPWORDS and not known:
-            cutoff = 0.78 if len(w) >= 6 else 0.8 if len(w) == 5 else 0.85
+            # 0.85 keeps "scared" from becoming "care" while still fixing
+            # "tutering", "shleter", "imigration"; five-letter swaps ("chlid") need 0.8.
+            cutoff = 0.85 if len(w) >= 6 else 0.8 if len(w) == 5 else 0.85
             close = [c for c in difflib.get_close_matches(w, idx.vocab, n=3, cutoff=cutoff)
                      if c not in STOPWORDS]
             if close:

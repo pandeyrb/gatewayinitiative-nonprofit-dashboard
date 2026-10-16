@@ -74,6 +74,15 @@ _ALWAYS_RE = re.compile(r"\b24\s*(?:hours?|hrs?|/\s*7)\b", re.I)
 _CLOSED_RE = re.compile(r"\bclosed\b", re.I)
 _NOTE_RE = re.compile(r"\(([^)]*)\)")
 
+_MONTHS = {m: i for i, m in enumerate(
+    ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
+_MONTH = r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?"
+# A note that is only a date range is a season: "(Jun 1 to Sep 15)", "(June–August)".
+_SEASON_RE = re.compile(
+    rf"^\s*(?:open\s+|season:?\s*)?{_MONTH}\s*(\d{{1,2}})?\s*(?:{_DASH}|through)\s*{_MONTH}\s*(\d{{1,2}})?\s*(?:only)?\s*$",
+    re.I)
+_MONTH_DAYS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
 
 @dataclass(frozen=True)
 class Interval:
@@ -98,6 +107,9 @@ class Schedule:
     unparsed: list[str] = field(default_factory=list)
     always_open: bool = False
     raw: str = ""
+    # ((month, day), (month, day)) when the hours only apply part of the year,
+    # written as a note: "Mon–Sun 8 AM–8 PM (Jun 1 to Sep 15)".
+    season: tuple[tuple[int, int], tuple[int, int]] | None = None
 
     @property
     def has_structure(self) -> bool:
@@ -226,6 +238,30 @@ def _split_label(segment: str) -> tuple[str | None, str]:
     return None, segment.strip()
 
 
+def _parse_season(note: str):
+    m = _SEASON_RE.match(note)
+    if not m:
+        return None
+    m1, d1, m2, d2 = _MONTHS[m.group(1)[:3].lower()], m.group(2), _MONTHS[m.group(3)[:3].lower()], m.group(4)
+    start = (m1, int(d1) if d1 else 1)
+    end = (m2, int(d2) if d2 else _MONTH_DAYS[m2 - 1])
+    if not (1 <= start[1] <= _MONTH_DAYS[m1 - 1] and 1 <= end[1] <= _MONTH_DAYS[m2 - 1]):
+        return None
+    return start, end
+
+
+def in_season(schedule: Schedule, now) -> bool:
+    """True when `now` falls inside the schedule's season (or it has none).
+    A season may wrap the new year ("Nov 15 to Mar 31")."""
+    if not schedule.season:
+        return True
+    (m1, d1), (m2, d2) = schedule.season
+    today = (now.month, now.day)
+    if (m1, d1) <= (m2, d2):
+        return (m1, d1) <= today <= (m2, d2)
+    return today >= (m1, d1) or today <= (m2, d2)
+
+
 def _parse_segment(body: str, schedule: Schedule) -> None:
     """Fold one semicolon-delimited segment into `schedule`."""
     notes = [n.strip() for n in _NOTE_RE.findall(body) if n.strip()]
@@ -235,6 +271,9 @@ def _parse_segment(body: str, schedule: Schedule) -> None:
     for n in notes:
         if n not in schedule.notes:
             schedule.notes.append(n)
+        season = _parse_season(n)
+        if season:
+            schedule.season = season
 
     if not text:
         return
@@ -425,7 +464,8 @@ def _next_opening(schedule: Schedule, weekday: int, minute: int):
 
 
 def open_status(
-    schedules: list[Schedule], now, day_names: list[str] | None = None
+    schedules: list[Schedule], now, day_names: list[str] | None = None,
+    month_names: list[str] | None = None,
 ) -> tuple[str, str, str]:
     """Is anything open right now?
 
@@ -441,6 +481,23 @@ def open_status(
     structured = [s for s in schedules if s.has_structure]
     if not structured:
         return "unknown", "", ""
+
+    # Out-of-season hours don't count. If nothing is in season, the answer is
+    # "closed, opens <season start>" rather than a weekday that won't come.
+    current = [s for s in structured if in_season(s, now)]
+    if not current:
+        months = month_names or ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        def days_until(s):
+            (m, d) = s.season[0]
+            start = now.replace(month=m, day=d)
+            if (m, d) < (now.month, now.day):
+                start = start.replace(year=now.year + 1)
+            return (start.date() - now.date()).days
+        nxt = min(current or structured, key=days_until)
+        m, d = nxt.season[0]
+        return "closed", f"{months[m - 1]} {d}", nxt.label
+    structured = current
 
     weekday, minute = now.weekday(), now.hour * 60 + now.minute
 

@@ -442,8 +442,7 @@ T = {
         "search_placeholder": "Name, city, or service…",
         "search_placeholder_main": "Search for food, rent help, ESL… or describe what you need",
         "search_ai_note": "Longer searches are matched by Google's AI. Please don't include names or personal details.",
-        "search_try": "Try a search",
-        "search_examples": "I can't pay my rent|I'm hungry|ESL classes|I lost my job|I need a doctor|free clothes for my kids",
+        "search_hint": "Search by an organization's name, a service such as <i>food pantry</i> or <i>ESL classes</i>, or describe your situation in your own words, in English or Spanish. You can also pick a category below.",
         "search_fixed": "Showing results for {q}",
         "ai_searching": "Finding the best matches…",
         "ai_matches_heading": "Best matches for your search",
@@ -467,6 +466,26 @@ T = {
         "feedback_unset": "Feedback form link not yet configured",
         "tab_map": "Map",
         "tab_directory": "Directory",
+        "tab_list": "List",
+        "miles": "{d} mi away",
+        "hours_checked": "Hours checked {d}",
+        "show_more": "Show {n} more",
+        "near_label": "Sort by distance from",
+        "near_placeholder": "Sort by distance: your ZIP code or address",
+        "near_help": "Looked up with OpenStreetMap to measure distance. Nothing you type here is saved.",
+        "near_not_found": "Couldn't find that place. Try a ZIP code, like 01841.",
+        "share_title": "Share a list",
+        "share_pick": "Pick organizations to share",
+        "share_placeholder": "Choose one or more",
+        "share_help": "Copy the text with the button at its top right, then paste it into a text message or email.",
+        "staff_title": "Spreadsheet and download (for staff)",
+        "crisis_title": "If you or someone else is in danger, help is available now",
+        "crisis_911": "Emergency: call",
+        "crisis_988": "988 Suicide &amp; Crisis Lifeline, 24/7, Spanish available: call or text",
+        "crisis_ywca": "YWCA domestic violence hotline, 24/7:",
+        "crisis_jgcc": "Jeanne Geiger Crisis Center hotline, 24/7:",
+        "crisis_note": "These calls are free and confidential. The organizations below can also help.",
+        "help_211": "Not finding what you need? Call <b>2-1-1</b> (Mass 211). It's free, open 24/7, and has help in Spanish and other languages.",
         "tab_org_detail": "Organization details",
         "no_results": "No organizations match these filters. Try a different search or clear the filters.",
         "no_coords": "Matching organizations have no coordinates to plot.",
@@ -493,6 +512,7 @@ T = {
         "open_now_col": "Open now",
         "status_asof": "Open/closed shown for {t} (Lawrence time)",
         "days_short": "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
+        "months_short": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
         "hours_closed_word": "closed",
         "hours_24": "24 hours",
         "hours_today": "Today",
@@ -576,8 +596,7 @@ T = {
         "search_placeholder": "Nombre, ciudad o servicio…",
         "search_placeholder_main": "Buscar comida, vivienda, inglés… o describa lo que necesita",
         "search_ai_note": "Las búsquedas más largas se procesan con la IA de Google. Por favor, no incluya nombres ni datos personales.",
-        "search_try": "Pruebe una búsqueda",
-        "search_examples": "No puedo pagar la renta|Necesito comida|Clases de inglés|Necesito trabajo|Necesito un médico|Ropa para mis hijos",
+        "search_hint": "Busque por el nombre de una organización, un servicio como <i>despensa de comida</i> o <i>clases de inglés</i>, o describa su situación con sus propias palabras, en español o inglés. También puede elegir una categoría abajo.",
         "search_fixed": "Mostrando resultados para {q}",
         "ai_searching": "Buscando los mejores resultados…",
         "ai_matches_heading": "Mejores resultados para su búsqueda",
@@ -601,6 +620,26 @@ T = {
         "feedback_unset": "El enlace del formulario aún no está configurado",
         "tab_map": "Mapa",
         "tab_directory": "Directorio",
+        "tab_list": "Lista",
+        "miles": "a {d} mi",
+        "hours_checked": "Horario verificado {d}",
+        "show_more": "Mostrar {n} más",
+        "near_label": "Ordenar por distancia desde",
+        "near_placeholder": "Ordenar por distancia: su código postal o dirección",
+        "near_help": "Se busca en OpenStreetMap para medir la distancia. No se guarda nada de lo que escriba aquí.",
+        "near_not_found": "No encontramos ese lugar. Pruebe con un código postal, como 01841.",
+        "share_title": "Compartir una lista",
+        "share_pick": "Elija organizaciones para compartir",
+        "share_placeholder": "Elija una o más",
+        "share_help": "Copie el texto con el botón de arriba a la derecha y péguelo en un mensaje de texto o correo.",
+        "staff_title": "Tabla y descarga (para el personal)",
+        "crisis_title": "Si usted u otra persona está en peligro, hay ayuda ahora mismo",
+        "crisis_911": "Emergencia: llame al",
+        "crisis_988": "Línea 988 de Prevención del Suicidio y Crisis, 24/7, en español: llame o envíe un texto al",
+        "crisis_ywca": "Línea de violencia doméstica de YWCA, 24/7:",
+        "crisis_jgcc": "Línea de Jeanne Geiger Crisis Center, 24/7:",
+        "crisis_note": "Estas llamadas son gratuitas y confidenciales. Las organizaciones de abajo también pueden ayudar.",
+        "help_211": "¿No encuentra lo que necesita? Llame al <b>2-1-1</b> (Mass 211). Es gratis, atiende 24/7 y ofrece ayuda en español y otros idiomas.",
         "tab_org_detail": "Detalles de la organización",
         "no_results": "Ninguna organización coincide con estos filtros. Pruebe otra búsqueda o borre los filtros.",
         "no_coords": "Las organizaciones encontradas no tienen coordenadas para mostrar en el mapa.",
@@ -627,6 +666,7 @@ T = {
         "open_now_col": "Abierto ahora",
         "status_asof": "Abierto/cerrado según las {t} (hora de Lawrence)",
         "days_short": "Lun,Mar,Mié,Jue,Vie,Sáb,Dom",
+        "months_short": "ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic",
         "hours_closed_word": "cerrado",
         "hours_24": "24 horas",
         "hours_today": "Hoy",
@@ -716,8 +756,22 @@ ORG_TYPE_ES = {
     "Municipal Agency": "Agencia municipal",
 }
 
+def _browser_prefers_spanish() -> bool:
+    """True when the visitor's browser lists Spanish first. Most of Lawrence
+    speaks Spanish at home, and someone in a hurry may never find the switch."""
+    try:
+        locale = (st.context.locale or "").lower()
+        accept = (st.context.headers.get("Accept-Language") or "").lower()
+        # Either signal is enough: the page language setting (locale) and the
+        # language the browser asks sites for (Accept-Language) can differ.
+        return locale.startswith("es") or accept.split(",")[0].strip().startswith("es")
+    except Exception:
+        return False
+
+
 if "lang" not in st.session_state:
-    st.session_state["lang"] = "en"
+    # Only the starting language: the English / Español switch still decides after.
+    st.session_state["lang"] = "es" if _browser_prefers_spanish() else "en"
 
 
 def _(key: str) -> str:
@@ -921,11 +975,8 @@ st.markdown(
     box-shadow:0 0 0 4px {ACCENT_TINT}, 0 6px 18px -10px rgba(19,35,42,.35); }}
   .gwi-fixed {{ font-size:15px !important; color:{TEXT_MID}; margin:-4px 0 6px !important; }}
   .gwi-fixed b {{ color:{ACCENT}; font-weight:650; font-style:italic; }}
-  .st-key-search_example {{ margin-top:-6px; }}
-  .st-key-search_example button {{ min-height:32px !important; background:{BG_TINT} !important;
-    border-color:transparent !important; }}
-  .st-key-search_example button p {{ font-size:13.5px !important; color:{TEXT_MID} !important; }}
-  .st-key-search_example button:hover {{ border-color:{ACCENT} !important; }}
+  .gwi-hint {{ font-size:14px !important; line-height:1.5; color:{TEXT_MID}; margin:-4px 0 4px !important; max-width:72ch; }}
+  .gwi-hint i {{ color:{INK}; font-style:normal; font-weight:600; }}
   .st-key-search input {{ background:transparent !important; padding-left:46px !important;
     font-size:17px !important; letter-spacing:-.01em; }}
 
@@ -1009,6 +1060,25 @@ st.markdown(
   .gwi-empty h4 {{ font-size:19px !important; font-weight:650 !important; margin:0 0 6px !important;
     padding:0 !important; letter-spacing:-.01em; }}
   .gwi-empty p {{ color:{TEXT_MID}; font-size:15px; margin:0 auto; max-width:420px; }}
+  .gwi-empty p.gwi-211 {{ margin-top:14px !important; padding-top:14px; border-top:1px solid {BORDER};
+    color:{INK}; max-width:460px; }}
+
+  /* Crisis numbers: shown above results when a search sounds like an emergency. */
+  .gwi-crisis {{ background:#fdecea; border:1px solid #f1b7ae; border-radius:16px;
+    padding:16px 20px 14px; margin:14px 0 6px; color:#5c1a10; }}
+  .gwi-crisis-h {{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:17px;
+    color:#8f2416; margin-bottom:6px; }}
+  .gwi-crisis ul {{ margin:0 0 6px; padding-left:20px; display:grid; gap:4px; }}
+  .gwi-crisis li {{ font-size:15.5px; line-height:1.45; }}
+  .gwi-crisis a {{ color:#8f2416 !important; font-weight:700; white-space:nowrap;
+    font-variant-numeric:tabular-nums; }}
+  .gwi-crisis p {{ font-size:13.5px !important; margin:0 !important; color:#7a2d22; }}
+
+  /* Card status line: open/closed pill, then when the hours were last checked. */
+  .gwi-status-row {{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }}
+  .gwi-checked {{ font-size:12px; color:{TEXT_MUTED}; }}
+  .st-key-near {{ max-width:420px; margin-left:auto; }}
+  .st-key-list_more button {{ border-radius:999px !important; }}
   /* Tabs as a segmented bar: the current view is obvious at a glance. */
   [data-testid="stTabs"] [role="tablist"] {{ gap:4px; background:{BG_TINT};
     padding:4px; border-radius:12px; width:fit-content; border:none; }}
@@ -1058,12 +1128,13 @@ st.markdown(
     .gwi-btn {{ flex:1 1 auto; justify-content:center; min-height:46px;
       padding:0 18px; font-size:15px; }}
     .gwi-hero {{ grid-template-columns:1fr; min-height:0; border-radius:16px; }}
-    .gwi-hero-img {{ order:-1; min-height:170px; background-position:center 30%; }}
-    .gwi-hero-tx {{ padding:24px 22px 76px; gap:20px; }}
-    .gwi-h1 {{ font-size:32px !important; }}
+    .gwi-hero-img {{ order:-1; min-height:72px; background-position:center 34%; }}
+    .gwi-hero-tx {{ padding:16px 20px 64px; gap:6px; }}
+    .gwi-h1 {{ font-size:25px !important; }}
     .gwi-stats {{ gap:22px; }}
-    .gwi-stat b {{ font-size:24px; }}
-    .gwi-stat span {{ font-size:13px; }}
+    .gwi-stat {{ display:flex; align-items:baseline; gap:6px; }}
+    .gwi-stat b {{ font-size:17px; }}
+    .gwi-stat span {{ font-size:13px; margin-top:0; }}
     .st-key-gwi_filters {{ margin:-52px 10px 0; padding:18px 16px 8px;
       width:calc(100% - 20px) !important; }}
     .gwi-q {{ font-size:17px; }}
@@ -1549,7 +1620,7 @@ def _site_plan(org_row, groups: list[tuple[str, list[dict]]]) -> list[dict]:
 def _group_status(locs: list[dict]) -> tuple[str, str]:
     """(state, short text) for a building — open if any programme there is."""
     scheds = [s for loc in locs for s in _schedules(loc.get("Hours", ""))]
-    state, detail, _label = open_status(scheds, _now_local(), _day_names())
+    state, detail, _label = open_status(scheds, _now_local(), _day_names(), _month_names())
     if state == "open":
         return state, _("status_open").capitalize() + (
             f" · {_('status_until').format(t=detail)}" if detail else ""
@@ -2174,6 +2245,10 @@ def _day_names() -> list[str]:
     return _("days_short").split(",")
 
 
+def _month_names() -> list[str]:
+    return _("months_short").split(",")
+
+
 def _schedules(hours_text: str) -> list[Schedule]:
     return parse_hours(str(hours_text or ""))
 
@@ -2185,7 +2260,7 @@ def _status_badge_html(scheds: list[Schedule], compact: bool = False) -> str:
     "unknown" badge — the honest reading of a missing value here is that we do
     not know, and telling someone to phone first is more useful than a shrug.
     """
-    state, detail, label = open_status(scheds, _now_local(), _day_names())
+    state, detail, label = open_status(scheds, _now_local(), _day_names(), _month_names())
     if state == "unknown":
         return (
             f'<div class="gwi-muted" style="font-size:11px;font-style:italic;'
@@ -2359,13 +2434,6 @@ def _apply_quick_filter(pairs: list[tuple[str, str]]) -> None:
     st.session_state["sel_cats"] = cats
     for c in cats:
         st.session_state[SVC_KEY + c] = [s for cc, s in pairs if cc == c]
-
-
-def _use_search_example() -> None:
-    picked = st.session_state.get("search_example")
-    if picked:
-        st.session_state["search"] = picked
-    st.session_state["search_example"] = None
 
 
 # ── page header ───────────────────────────────────────────────────────────────
@@ -2559,15 +2627,9 @@ with filters_box:
                 unsafe_allow_html=True,
             )
     else:
-        # A blank box is the hardest place to start: offer a few searches that
-        # show it understands plain sentences, not just service names.
-        st.pills(
-            _("search_try"),
-            _("search_examples").split("|"),
-            key="search_example",
-            on_change=_use_search_example,
-            label_visibility="collapsed",
-        )
+        # A blank box is the hardest place to start: say what kinds of search
+        # work, since most people don't expect a plain sentence to.
+        st.markdown(f'<p class="gwi-hint">{_("search_hint")}</p>', unsafe_allow_html=True)
     if ai_matcher is not None:
         st.caption(_("search_ai_note"))
 
@@ -2676,29 +2738,7 @@ n_filtered = len(filtered)
 n_total = len(df)
 has_filters = bool(search or sel_cats or sel_org_type != "All" or open_now_only)
 
-count_col, clear_col = st.columns([6, 1.2], vertical_alignment="center")
-with count_col:
-    txt = (
-        _("showing_all").format(n=f"<b>{n_total}</b>")
-        if n_filtered == n_total
-        else _("showing_filtered").format(n=f"<b>{n_filtered}</b>", total=n_total)
-    )
-    st.markdown(f"<p class='gwi-count'>{txt}</p>", unsafe_allow_html=True)
-with clear_col:
-    if has_filters:
-        st.button(
-            _("clear_filters"),
-            key="clear_main",
-            on_click=_reset_filters,
-            type="tertiary",
-            width="stretch",
-        )
-
-# ── search results ────────────────────────────────────────────────────────────
-# After a search, the first few matches as cards: the answer to "where do I
-# go?" without opening the map or the table. Order is the search's own ranking,
-# and an AI match carries its one-line reason. The rest stay in the tabs below.
-RESULT_CARDS = 6
+# ── search results helpers ────────────────────────────────────────────────────
 _ICON_PHONE = _SVG.format(w=15, d=(
     '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 '
     '1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 '
@@ -2711,16 +2751,35 @@ _ICON_PIN = _SVG.format(w=15, d=(
     '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/>'
     '<circle cx="12" cy="9.5" r="2.5"/>'))
 _ICON_SEARCH = _SVG.format(w=26, d='<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>')
+_ICON_ALERT = _SVG.format(w=20, d=(
+    '<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.01"/>'))
+
+LIST_PAGE = 6  # result cards shown before "Show more"
 
 
-def _result_card(rank: int, row) -> str:
+def _tel(number: str) -> str:
+    """A tappable phone number that still shows the number as text."""
+    digits = re.sub(r"\D", "", number)
+    return f'<a href="tel:{digits}">{html.escape(number)}</a>'
+
+
+def _checked_label(raw) -> str:
+    """'2026-10-12' -> 'Oct 2026' ('oct 2026' in Spanish); '' if unreadable."""
+    m = re.match(r"(\d{4})-(\d{2})", str(raw or ""))
+    if not m:
+        return ""
+    return f"{_month_names()[int(m.group(2)) - 1]} {m.group(1)}"
+
+
+def _org_card(row, rank: int | None = None, miles: float | None = None) -> str:
     esc = html.escape
     name = str(row["Name"])
-    meta = " · ".join(
-        p for p in (_org_type_label(str(row.get("OrgType", ""))), str(row.get("City", "")).strip()) if p
-    )
+    meta_parts = [_org_type_label(str(row.get("OrgType", ""))), str(row.get("City", "")).strip()]
+    if miles is not None:
+        meta_parts.append(_("miles").format(d=f"{miles:.1f}"))
+    meta = " · ".join(p for p in meta_parts if p)
     state, detail, _label = open_status(
-        _schedules(row.get("Hours", "")), _now_local(), _day_names()
+        _schedules(row.get("Hours", "")), _now_local(), _day_names(), _month_names()
     )
     if state == "open":
         pill = _("status_open").capitalize() + (
@@ -2730,6 +2789,7 @@ def _result_card(rank: int, row) -> str:
             f" · {_('status_opens').format(t=detail)}" if detail else "")
     else:
         pill = _("status_unknown")
+    checked = _checked_label(row.get("HoursVerifiedOn")) if str(row.get("Hours", "")).strip() else ""
     why = ""
     if name in search_reasons:
         why = (f'<div class="gwi-why"><b>{_ICON_SPARKLE.replace("18", "13")}'
@@ -2753,12 +2813,14 @@ def _result_card(rank: int, row) -> str:
 
     return (
         f'<article class="gwi-card"><div class="gwi-card-top">'
-        f'<span class="gwi-card-n">{rank}</span><div class="gwi-card-t">'
-        f'<p class="gwi-card-name">{esc(name)}</p>'
+        + (f'<span class="gwi-card-n">{rank}</span>' if rank else "")
+        + f'<div class="gwi-card-t"><p class="gwi-card-name">{esc(name)}</p>'
         + (f'<p class="gwi-card-meta">{esc(meta)}</p>' if meta else "")
-        + f'</div></div><span class="gwi-pill gwi-pill--{state}">{esc(pill)}</span>'
+        + f'</div></div><div class="gwi-status-row"><span class="gwi-pill gwi-pill--{state}">{esc(pill)}</span>'
+        + (f'<span class="gwi-checked">{esc(_("hours_checked").format(d=checked))}</span>' if checked else "")
+        + "</div>"
         + (f'<p class="gwi-card-about">{esc(_description(row))}</p>' if _description(row) else "")
-        + why +(f'<div class="gwi-tags">{tags}</div>' if tags else "")
+        + why + (f'<div class="gwi-tags">{tags}</div>' if tags else "")
         + (f'<div class="gwi-acts">{"".join(acts)}</div>' if acts else "")
         + "</article>"
     )
@@ -2767,24 +2829,217 @@ def _result_card(rank: int, row) -> str:
 def _empty_state() -> None:
     st.markdown(
         f'<div class="gwi-empty"><div class="gwi-empty-ic">{_ICON_SEARCH}</div>'
-        f'<h4>{_("empty_title")}</h4><p>{_("no_results")}</p></div>',
+        f'<h4>{_("empty_title")}</h4><p>{_("no_results")}</p>'
+        f'<p class="gwi-211">{_("help_211")}</p></div>',
         unsafe_allow_html=True,
     )
 
 
-if search and not filtered.empty:
-    _top = filtered.head(RESULT_CARDS)
-    _rest = n_filtered - len(_top)
+# Words that mean someone may be in danger now. When a search contains one,
+# the emergency numbers go above everything else: a list of agencies with
+# office hours is the wrong first answer to "I want to kill myself".
+_CRISIS_SELF = re.compile(
+    r"\b(suicid\w*|kill (my|him|her)self|want(ing)? to die|end (my|it all)|self[- ]?harm|"
+    r"hurt(ing)? myself|overdos\w*|matarme|quiero morir(me)?|hacerme da[nñ]o|suicidarme)\b", re.I)
+_CRISIS_VIOLENCE = re.compile(
+    r"\b(hits? me|beats? me|hurts? me|abus\w*|domestic violence|violen\w*|rape\w*|raped|"
+    r"assault\w*|stalk\w*|threaten\w*|unsafe at home|scared of my|afraid of my|"
+    r"me pega|me golpea|me maltrata|maltrato|abuso|violaci[oó]n|amenaz\w*|tengo miedo)\b", re.I)
+
+
+def _crisis_box(query: str) -> None:
+    q = _fold(query or "")
+    selfharm, violence = bool(_CRISIS_SELF.search(q)), bool(_CRISIS_VIOLENCE.search(q))
+    if not (selfharm or violence):
+        return
+    lines = [f'<li><b>{_("crisis_911")}</b> {_tel("911")}</li>']
+    line988 = f'<li>{_("crisis_988")} {_tel("988")}</li>'
+    lines_dv = [
+        f'<li>{_("crisis_ywca")} {_tel("877-509-9922")}</li>',
+        f'<li>{_("crisis_jgcc")} {_tel("978-388-1888")}</li>',
+    ]
+    lines += ([line988] + (lines_dv if violence else [])) if selfharm else (lines_dv + [line988])
     st.markdown(
-        f'<div class="gwi-res-h"><div class="gwi-res-t">{_("results_heading")}</div>'
-        + (f'<span>{_("results_more").format(n=_rest)}</span>' if _rest > 0 else "")
-        + '</div><div class="gwi-res">'
-        + "".join(_result_card(i, r) for i, (_ix, r) in enumerate(_top.iterrows(), 1))
+        f'<section class="gwi-crisis" role="alert"><div class="gwi-crisis-h">{_ICON_ALERT}'
+        f'<span>{_("crisis_title")}</span></div><ul>{"".join(lines)}</ul>'
+        f'<p>{_("crisis_note")}</p></section>',
+        unsafe_allow_html=True,
+    )
+
+
+def _log_search(query: str, n_results: int) -> None:
+    """Record the search (text, language, how many results) in search_log, once
+    per search per visit, so the team can see what people look for and what
+    finds nothing. Never blocks the page: a failed write is ignored."""
+    q = (query or "").strip()[:200]
+    if DATA_SOURCE != "supabase" or len(q) < 2:
+        return
+    key = (q.lower(), st.session_state["lang"])
+    logged = st.session_state.setdefault("_logged_searches", set())
+    if key in logged:
+        return
+    logged.add(key)
+    try:
+        from postgrest import ReturnMethod
+
+        from data_source import _client
+        # returning=minimal: the public key may add to the log but not read it,
+        # and asking for the new row back makes Supabase refuse the insert.
+        _client().table("search_log").insert(
+            {"query": q, "lang": st.session_state["lang"], "result_count": int(n_results)},
+            returning=ReturnMethod.minimal,
+        ).execute()
+    except Exception:
+        pass
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def _geocode(place: str) -> tuple[float, float] | None:
+    """A ZIP code or street address -> (lat, lon), via OpenStreetMap. Biased to
+    Massachusetts, since that is where everyone using this is."""
+    q = place.strip()
+    if re.fullmatch(r"\d{5}", q):
+        q += ", Massachusetts"
+    elif "ma" not in q.lower().split() and "massachusetts" not in q.lower():
+        q += ", Lawrence, Massachusetts"
+    try:
+        r = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": q, "format": "json", "limit": 1, "countrycodes": "us"},
+            headers={"User-Agent": "LawrenceResourceFinder/1.0 (Gateway Initiative)"},
+            timeout=8,
+        )
+        hits = r.json() if r.ok else []
+    except Exception:
+        return None
+    return (float(hits[0]["lat"]), float(hits[0]["lon"])) if hits else None
+
+
+def _miles(a: tuple[float, float], b: tuple[float, float]) -> float:
+    from math import asin, cos, radians, sin, sqrt
+    la1, lo1, la2, lo2 = map(radians, (*a, *b))
+    h = sin((la2 - la1) / 2) ** 2 + cos(la1) * cos(la2) * sin((lo2 - lo1) / 2) ** 2
+    return 3958.8 * 2 * asin(sqrt(h))
+
+
+def _nearest_miles(row, origin) -> float | None:
+    """Distance to the org's closest site: its main address or any other location."""
+    pts = []
+    if pd.notna(row.get("Latitude")) and pd.notna(row.get("Longitude")):
+        pts.append((float(row["Latitude"]), float(row["Longitude"])))
+    for loc in locations.get(row["Name"], []):
+        try:
+            pts.append((float(loc["Latitude"]), float(loc["Longitude"])))
+        except (TypeError, ValueError, KeyError):
+            pass
+    return min((_miles(origin, p) for p in pts), default=None)
+
+
+def _share_text(rows) -> str:
+    """Plain text a caseworker can paste into a text message or email."""
+    blocks = []
+    for _ix, r in rows.iterrows():
+        lines = [str(r["Name"])]
+        if str(r.get("Phone", "")).strip():
+            lines.append(f'{_("sec_phone")}: {r["Phone"]}')
+        addr = ", ".join(p for p in (str(r.get("Address", "")).strip(), str(r.get("City", "")).strip()) if p)
+        if addr:
+            lines.append(f'{_("popup_address")}: {addr}')
+        hours = str(r.get("Hours", "")).strip()
+        lines.append(f'{_("sec_hours")}: {hours}' if hours else _("status_unknown"))
+        if str(r.get("URL", "")).strip():
+            lines.append(str(r["URL"]).strip())
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
+
+
+# A search that sounds like an emergency gets the numbers first, above the
+# result count and everything else.
+if search:
+    _crisis_box(search)
+    _log_search(search, n_filtered)
+
+count_col, clear_col = st.columns([6, 1.2], vertical_alignment="center")
+with count_col:
+    txt = (
+        _("showing_all").format(n=f"<b>{n_total}</b>")
+        if n_filtered == n_total
+        else _("showing_filtered").format(n=f"<b>{n_filtered}</b>", total=n_total)
+    )
+    st.markdown(f"<p class='gwi-count'>{txt}</p>", unsafe_allow_html=True)
+with clear_col:
+    if has_filters:
+        st.button(
+            _("clear_filters"),
+            key="clear_main",
+            on_click=_reset_filters,
+            type="tertiary",
+            width="stretch",
+        )
+
+# ── results ───────────────────────────────────────────────────────────────────
+# Once someone searches or filters, the matches as cards above the map: the
+# answer to "where do I go?" without opening the map or the table. Search
+# order is kept; "sort by distance" re-sorts. Six at a time, so the map stays
+# close. With no search or filter there is nothing here and the map leads.
+if has_filters and not filtered.empty:
+    head_l, head_r = st.columns([3, 2], vertical_alignment="center")
+    with head_l:
+        st.markdown(f'<div class="gwi-res-t">{_("results_heading")}</div>', unsafe_allow_html=True)
+    with head_r:
+        near = st.text_input(
+            _("near_label"), placeholder=_("near_placeholder"), key="near",
+            help=_("near_help"), label_visibility="collapsed",
+        )
+    listed = filtered
+    dist: dict[str, float] = {}
+    if near.strip():
+        origin = _geocode(near)
+        if origin is None:
+            st.caption(_("near_not_found"))
+        else:
+            for _ix, r in filtered.iterrows():
+                d = _nearest_miles(r, origin)
+                if d is not None:
+                    dist[r["Name"]] = d
+            order = sorted(filtered.index, key=lambda i: dist.get(filtered.at[i, "Name"], 1e9))
+            listed = filtered.loc[order]
+
+    # Start again at the first page whenever the list itself changes.
+    sig = (tuple(listed["Name"]), st.session_state["lang"])
+    if st.session_state.get("_list_sig") != sig:
+        st.session_state["_list_sig"] = sig
+        st.session_state["list_n"] = LIST_PAGE
+    shown = listed.head(st.session_state["list_n"])
+    ranked = bool(search) and not dist
+    st.markdown(
+        '<div class="gwi-res">'
+        + "".join(
+            _org_card(r, rank=i if ranked else None, miles=dist.get(r["Name"]))
+            for i, (_ix, r) in enumerate(shown.iterrows(), 1)
+        )
         + "</div>"
         + (f'<p class="gwi-res-note">{_("ai_matches_note")}</p>'
-           if any(n in search_reasons for n in _top["Name"]) else ""),
+           if any(n in search_reasons for n in shown["Name"]) else ""),
         unsafe_allow_html=True,
     )
+    more_col, share_col = st.columns([1, 2], vertical_alignment="top")
+    with more_col:
+        rest = len(listed) - len(shown)
+        if rest > 0:
+            if st.button(_("show_more").format(n=min(rest, LIST_PAGE)), key="list_more"):
+                st.session_state["list_n"] += LIST_PAGE
+                st.rerun()
+    with share_col:
+        # Caseworkers send a few options at a time by text or email.
+        with st.expander(_("share_title")):
+            picks = st.multiselect(
+                _("share_pick"), list(listed["Name"]), key="share_picks",
+                placeholder=_("share_placeholder"),
+            )
+            if picks:
+                st.caption(_("share_help"))
+                st.code(_share_text(listed[listed["Name"].isin(picks)]), language=None, wrap_lines=True)
 
 # ── tabs ──────────────────────────────────────────────────────────────────────
 tab_map, tab_dir, tab_detail = st.tabs(
