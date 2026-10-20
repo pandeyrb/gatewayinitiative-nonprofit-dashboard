@@ -139,6 +139,8 @@ _POPUP_CSS = """
 .leaflet-popup-content-wrapper{padding:0;border-radius:10px;overflow:hidden;
   box-shadow:0 3px 16px rgba(0,0,0,.20)}
 .leaflet-popup-content{margin:0;width:auto!important;line-height:1.45}
+/* Keep the map credit line small, as Leaflet intends. */
+.leaflet-control-attribution{font-size:10px!important;line-height:1.4!important}
 
 .gwi-pop{font-family:__FONT__;width:322px;max-width:84vw;display:flex;
   flex-direction:column;max-height:min(360px,62vh);color:__TEXT_DARK__}
@@ -467,11 +469,24 @@ T = {
         "tab_map": "Map",
         "tab_directory": "Directory",
         "tab_list": "List",
+        "back_to_results": "All results",
+        "share_one": "Copy these details to share",
+        "sort_label": "Sort results",
+        "sort_best": "Best match",
+        "sort_az": "A–Z",
+        "sort_near": "Nearest",
+        "sort_open": "Open now",
+        "rail_count": "{n} results",
+        "rail_count_all": "{n} organizations",
+        "sec_who": "Who it's for",
+        "sec_cost": "Cost",
+        "sec_lang": "Languages",
+        "sec_how": "How to get help",
         "miles": "{d} mi away",
         "hours_checked": "Hours checked {d}",
         "show_more": "Show {n} more",
         "near_label": "Sort by distance from",
-        "near_placeholder": "Sort by distance: your ZIP code or address",
+        "near_placeholder": "Your ZIP code or street address",
         "near_help": "Looked up with OpenStreetMap to measure distance. Nothing you type here is saved.",
         "near_not_found": "Couldn't find that place. Try a ZIP code, like 01841.",
         "share_title": "Share a list",
@@ -489,7 +504,7 @@ T = {
         "tab_org_detail": "Organization details",
         "no_results": "No organizations match these filters. Try a different search or clear the filters.",
         "no_coords": "Matching organizations have no coordinates to plot.",
-        "map_caption": "{n} organizations on the map. Click a pin for details.",
+        "map_caption": "{n} organizations on the map. Pick a pin or a name in the list to see its details.",
         "basemap_light_gray": "Light Gray",
         "basemap_streets": "Streets",
         "basemap_satellite": "Satellite",
@@ -621,11 +636,24 @@ T = {
         "tab_map": "Mapa",
         "tab_directory": "Directorio",
         "tab_list": "Lista",
+        "back_to_results": "Todos los resultados",
+        "share_one": "Copiar estos datos para compartir",
+        "sort_label": "Ordenar resultados",
+        "sort_best": "Más relevantes",
+        "sort_az": "A–Z",
+        "sort_near": "Más cerca",
+        "sort_open": "Abiertos ahora",
+        "rail_count": "{n} resultados",
+        "rail_count_all": "{n} organizaciones",
+        "sec_who": "Para quién es",
+        "sec_cost": "Costo",
+        "sec_lang": "Idiomas",
+        "sec_how": "Cómo recibir ayuda",
         "miles": "a {d} mi",
         "hours_checked": "Horario verificado {d}",
         "show_more": "Mostrar {n} más",
         "near_label": "Ordenar por distancia desde",
-        "near_placeholder": "Ordenar por distancia: su código postal o dirección",
+        "near_placeholder": "Su código postal o dirección",
         "near_help": "Se busca en OpenStreetMap para medir la distancia. No se guarda nada de lo que escriba aquí.",
         "near_not_found": "No encontramos ese lugar. Pruebe con un código postal, como 01841.",
         "share_title": "Compartir una lista",
@@ -643,7 +671,7 @@ T = {
         "tab_org_detail": "Detalles de la organización",
         "no_results": "Ninguna organización coincide con estos filtros. Pruebe otra búsqueda o borre los filtros.",
         "no_coords": "Las organizaciones encontradas no tienen coordenadas para mostrar en el mapa.",
-        "map_caption": "{n} organizaciones en el mapa. Haga clic en un marcador para ver detalles.",
+        "map_caption": "{n} organizaciones en el mapa. Elija un marcador o un nombre de la lista para ver sus detalles.",
         "basemap_light_gray": "Gris Claro",
         "basemap_streets": "Calles",
         "basemap_satellite": "Satélite",
@@ -1079,6 +1107,71 @@ st.markdown(
   .gwi-checked {{ font-size:12px; color:{TEXT_MUTED}; }}
   .st-key-near {{ max-width:420px; margin-left:auto; }}
   .st-key-list_more button {{ border-radius:999px !important; }}
+
+  /* ── explore: results list (left) beside the map (right) ── */
+  .gwi-rail-count {{ font-size:15px !important; font-weight:650; color:{INK}; margin:0 !important; }}
+  .st-key-rail_sort {{ display:flex; justify-content:flex-end; }}
+  .st-key-gwi_rail, .st-key-gwi_place {{ background:{BG_WHITE}; border:1px solid {BORDER};
+    border-radius:16px; }}
+  .st-key-gwi_rail {{ padding:4px 0 !important; gap:0 !important; }}
+  .st-key-gwi_place {{ padding:20px 22px !important; }}
+  /* Each row is a container with an invisible full-size button laid over it,
+     so the whole row is one tap target and still a real, focusable button. */
+  [class*="st-key-row_"] {{ position:relative; padding:12px 16px; gap:0 !important;
+    border-bottom:1px solid {BORDER}; transition:background .15s ease; }}
+  [class*="st-key-row_"]:last-child {{ border-bottom:0; }}
+  [class*="st-key-row_"]:hover {{ background:{BG_TINT}; }}
+  [class*="st-key-row_"]:has(button:focus-visible) {{ outline:2px solid {ACCENT}; outline-offset:-2px;
+    border-radius:10px; }}
+  [class*="st-key-pick_"] {{ position:absolute !important; inset:0; z-index:3; margin:0 !important; }}
+  [class*="st-key-pick_"] button {{ width:100% !important; height:100% !important; opacity:0;
+    cursor:pointer; border:0 !important; }}
+  .gwi-row {{ display:flex; gap:10px; align-items:flex-start; }}
+  .gwi-row p {{ margin:0 !important; }}
+  .gwi-row-n {{ flex:none; width:24px; height:24px; border-radius:50%; background:{ACCENT_TINT};
+    color:{ACCENT}; font-size:12px; font-weight:700; display:flex; align-items:center;
+    justify-content:center; margin-top:1px; font-variant-numeric:tabular-nums; }}
+  .gwi-row-main {{ flex:1; min-width:0; display:grid; gap:3px; justify-items:start; }}
+  .gwi-row-name {{ font-size:15.5px !important; font-weight:650; color:{INK}; line-height:1.3; }}
+  .gwi-row-meta {{ font-size:13px !important; color:{TEXT_MUTED}; }}
+  .gwi-row-main .gwi-pill {{ margin-top:3px; }}
+  .gwi-row-why {{ font-size:13px !important; color:{TEXT_MID}; line-height:1.4; margin-top:3px !important;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
+  .gwi-row-why svg {{ color:{ACCENT}; vertical-align:-2px; margin-right:4px; }}
+  .st-key-rail_back button {{ background:transparent !important; border:0 !important;
+    padding:4px 2px !important; min-height:0 !important; }}
+  .st-key-rail_back button p {{ color:{ACCENT} !important; font-weight:650 !important; font-size:15px !important; }}
+
+  .st-key-gwi_detail_card {{ background:{BG_WHITE}; border:1px solid {BORDER}; border-radius:16px;
+    padding:22px 24px !important; }}
+  .gwi-detail-contact {{ display:grid; gap:8px; margin-top:12px; }}
+  .gwi-detail-contact p {{ margin:0 !important; font-size:14.5px !important; color:{INK}; display:grid; gap:1px; }}
+  .gwi-detail-contact span {{ font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:{TEXT_MUTED}; }}
+
+  /* Place card: the full profile of one organization. */
+  .gwi-place {{ display:grid; gap:18px; }}
+  .gwi-place-hd {{ display:grid; gap:8px; }}
+  .gwi-place-name {{ font-family:{DISPLAY_STACK} !important; font-size:24px !important; font-weight:700 !important;
+    letter-spacing:-.02em; line-height:1.2 !important; margin:0 !important; padding:0 !important; color:{INK} !important; }}
+  .gwi-place-meta {{ font-size:14px !important; color:{TEXT_MUTED}; margin:-4px 0 0 !important; }}
+  .gwi-place .gwi-acts {{ margin-top:6px; padding-top:0; }}
+  .gwi-place-about {{ font-size:15.5px !important; line-height:1.6; color:{INK}; margin:0 !important; }}
+  .gwi-facts {{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px 18px;
+    margin:0; padding:14px 16px; background:{BG_TINT}; border-radius:12px; }}
+  .gwi-facts dt {{ font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:{TEXT_MUTED}; margin:0 0 2px; }}
+  .gwi-facts dd {{ margin:0; font-size:14.5px; color:{INK}; line-height:1.45; }}
+  .gwi-place-sec {{ border-top:1px solid {BORDER}; padding-top:14px; }}
+  .gwi-place-sec h3 {{ font-size:12px !important; font-weight:700 !important; letter-spacing:.07em;
+    text-transform:uppercase; color:{TEXT_MUTED} !important; margin:0 0 8px !important; padding:0 !important; }}
+  .gwi-place-src {{ font-size:12.5px !important; margin:6px 0 0 !important; }}
+  .gwi-svc-group + .gwi-svc-group {{ margin-top:10px; }}
+  .gwi-svc-group p {{ font-size:13px !important; font-weight:650; color:{INK}; margin:0 0 5px !important; }}
+  .gwi-locs {{ list-style:none; margin:0; padding:0; display:grid; gap:10px; }}
+  .gwi-locs li {{ display:grid; gap:1px; font-size:14px; }}
+  .gwi-locs li span {{ color:{TEXT_MID}; font-size:13px; }}
+  .gwi-place-reports {{ font-size:13.5px !important; margin:0 !important; color:{TEXT_MUTED}; }}
   /* Tabs as a segmented bar: the current view is obvious at a glance. */
   [data-testid="stTabs"] [role="tablist"] {{ gap:4px; background:{BG_TINT};
     padding:4px; border-radius:12px; width:fit-content; border:none; }}
@@ -1124,6 +1217,8 @@ st.markdown(
     .block-container {{ padding-top:1rem; }}
     .st-key-lang_radio {{ justify-content:flex-start; }}
     .gwi-links {{ gap:10px; }}
+    .st-key-gwi_rail, .st-key-gwi_place {{ height:auto !important; max-height:62vh !important; }}
+    .st-key-gwi_place {{ padding:16px !important; }}
     .gwi-res {{ grid-template-columns:1fr; }}
     .gwi-btn {{ flex:1 1 auto; justify-content:center; min-height:46px;
       padding:0 18px; font-size:15px; }}
@@ -2754,7 +2849,6 @@ _ICON_SEARCH = _SVG.format(w=26, d='<circle cx="11" cy="11" r="7"/><path d="M16 
 _ICON_ALERT = _SVG.format(w=20, d=(
     '<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.01"/>'))
 
-LIST_PAGE = 6  # result cards shown before "Show more"
 
 
 def _tel(number: str) -> str:
@@ -2769,61 +2863,6 @@ def _checked_label(raw) -> str:
     if not m:
         return ""
     return f"{_month_names()[int(m.group(2)) - 1]} {m.group(1)}"
-
-
-def _org_card(row, rank: int | None = None, miles: float | None = None) -> str:
-    esc = html.escape
-    name = str(row["Name"])
-    meta_parts = [_org_type_label(str(row.get("OrgType", ""))), str(row.get("City", "")).strip()]
-    if miles is not None:
-        meta_parts.append(_("miles").format(d=f"{miles:.1f}"))
-    meta = " · ".join(p for p in meta_parts if p)
-    state, detail, _label = open_status(
-        _schedules(row.get("Hours", "")), _now_local(), _day_names(), _month_names()
-    )
-    if state == "open":
-        pill = _("status_open").capitalize() + (
-            f" · {_('status_until').format(t=detail)}" if detail else "")
-    elif state == "closed":
-        pill = _("status_closed").capitalize() + (
-            f" · {_('status_opens').format(t=detail)}" if detail else "")
-    else:
-        pill = _("status_unknown")
-    checked = _checked_label(row.get("HoursVerifiedOn")) if str(row.get("Hours", "")).strip() else ""
-    why = ""
-    if name in search_reasons:
-        why = (f'<div class="gwi-why"><b>{_ICON_SPARKLE.replace("18", "13")}'
-               f'{_("ai_match")}</b>{esc(search_reasons[name])}</div>')
-    tags = "".join(f"<span>{esc(t)}</span>" for t in list(row.get("SvcTagList") or [])[:3])
-
-    acts = []
-    phone = str(row.get("Phone", "")).strip()
-    digits = re.sub(r"\D", "", phone)
-    if len(digits) >= 10:
-        acts.append(f'<a class="gwi-act gwi-act--primary" href="tel:+1{digits[-10:]}">'
-                    f'{_ICON_PHONE}{_("call")}</a>')
-    url = str(row.get("URL", "")).strip()
-    if url:
-        href = url if url.startswith("http") else f"https://{url}"
-        acts.append(f'<a class="gwi-act" href="{esc(href)}" target="_blank" '
-                    f'rel="noopener noreferrer">{_ICON_GLOBE}{_("sec_website")}</a>')
-    if pd.notna(row.get("Latitude")) and pd.notna(row.get("Longitude")):
-        acts.append(f'<a class="gwi-act" href="{_directions_url(row["Latitude"], row["Longitude"])}" '
-                    f'target="_blank" rel="noopener noreferrer">{_ICON_PIN}{_("get_directions")}</a>')
-
-    return (
-        f'<article class="gwi-card"><div class="gwi-card-top">'
-        + (f'<span class="gwi-card-n">{rank}</span>' if rank else "")
-        + f'<div class="gwi-card-t"><p class="gwi-card-name">{esc(name)}</p>'
-        + (f'<p class="gwi-card-meta">{esc(meta)}</p>' if meta else "")
-        + f'</div></div><div class="gwi-status-row"><span class="gwi-pill gwi-pill--{state}">{esc(pill)}</span>'
-        + (f'<span class="gwi-checked">{esc(_("hours_checked").format(d=checked))}</span>' if checked else "")
-        + "</div>"
-        + (f'<p class="gwi-card-about">{esc(_description(row))}</p>' if _description(row) else "")
-        + why + (f'<div class="gwi-tags">{tags}</div>' if tags else "")
-        + (f'<div class="gwi-acts">{"".join(acts)}</div>' if acts else "")
-        + "</article>"
-    )
 
 
 def _empty_state() -> None:
@@ -2977,74 +3016,179 @@ with clear_col:
             width="stretch",
         )
 
-# ── results ───────────────────────────────────────────────────────────────────
-# Once someone searches or filters, the matches as cards above the map: the
-# answer to "where do I go?" without opening the map or the table. Search
-# order is kept; "sort by distance" re-sorts. Six at a time, so the map stays
-# close. With no search or filter there is nothing here and the map leads.
-if has_filters and not filtered.empty:
-    head_l, head_r = st.columns([3, 2], vertical_alignment="center")
-    with head_l:
-        st.markdown(f'<div class="gwi-res-t">{_("results_heading")}</div>', unsafe_allow_html=True)
-    with head_r:
-        near = st.text_input(
-            _("near_label"), placeholder=_("near_placeholder"), key="near",
-            help=_("near_help"), label_visibility="collapsed",
-        )
-    listed = filtered
-    dist: dict[str, float] = {}
-    if near.strip():
-        origin = _geocode(near)
-        if origin is None:
-            st.caption(_("near_not_found"))
-        else:
-            for _ix, r in filtered.iterrows():
-                d = _nearest_miles(r, origin)
-                if d is not None:
-                    dist[r["Name"]] = d
-            order = sorted(filtered.index, key=lambda i: dist.get(filtered.at[i, "Name"], 1e9))
-            listed = filtered.loc[order]
+# ── explore: results list beside the map ──────────────────────────────────────
+# The Map tab is one view in two panes, the way map apps do it: a compact,
+# scannable list of results on the left and the map on the right, always side
+# by side so a result and its place on the map can be compared at a glance.
+# Picking a row (or a pin) turns the left pane into a place card: the full
+# profile. The list is for comparing; the card is for reading. On phones the
+# panes stack, list first.
+PANE_H = 640  # px; the list/card pane and the map share one height
 
-    # Start again at the first page whenever the list itself changes.
-    sig = (tuple(listed["Name"]), st.session_state["lang"])
-    if st.session_state.get("_list_sig") != sig:
-        st.session_state["_list_sig"] = sig
-        st.session_state["list_n"] = LIST_PAGE
-    shown = listed.head(st.session_state["list_n"])
-    ranked = bool(search) and not dist
-    st.markdown(
-        '<div class="gwi-res">'
-        + "".join(
-            _org_card(r, rank=i if ranked else None, miles=dist.get(r["Name"]))
-            for i, (_ix, r) in enumerate(shown.iterrows(), 1)
-        )
-        + "</div>"
-        + (f'<p class="gwi-res-note">{_("ai_matches_note")}</p>'
-           if any(n in search_reasons for n in shown["Name"]) else ""),
-        unsafe_allow_html=True,
+
+def _pick_org(name: str) -> None:
+    st.session_state["sel_org"] = name
+
+
+def _unpick_org() -> None:
+    st.session_state["sel_org"] = None
+
+
+def _status_pill(hours: str) -> tuple[str, str]:
+    """(state, text) for the open/closed pill."""
+    state, detail, _label = open_status(
+        _schedules(hours), _now_local(), _day_names(), _month_names()
     )
-    more_col, share_col = st.columns([1, 2], vertical_alignment="top")
-    with more_col:
-        rest = len(listed) - len(shown)
-        if rest > 0:
-            if st.button(_("show_more").format(n=min(rest, LIST_PAGE)), key="list_more"):
-                st.session_state["list_n"] += LIST_PAGE
-                st.rerun()
-    with share_col:
-        # Caseworkers send a few options at a time by text or email.
-        with st.expander(_("share_title")):
-            picks = st.multiselect(
-                _("share_pick"), list(listed["Name"]), key="share_picks",
-                placeholder=_("share_placeholder"),
-            )
-            if picks:
-                st.caption(_("share_help"))
-                st.code(_share_text(listed[listed["Name"].isin(picks)]), language=None, wrap_lines=True)
+    if state == "open":
+        return state, _("status_open").capitalize() + (
+            f" · {_('status_until').format(t=detail)}" if detail else "")
+    if state == "closed":
+        return state, _("status_closed").capitalize() + (
+            f" · {_('status_opens').format(t=detail)}" if detail else "")
+    return state, _("status_unknown")
+
+
+def _row_html(row, rank: int | None, miles: float | None) -> str:
+    """One compact result: name, where, status, and the AI's one-line reason."""
+    esc = html.escape
+    name = str(row["Name"])
+    meta = [_org_type_label(str(row.get("OrgType", ""))), str(row.get("City", "")).strip()]
+    if miles is not None:
+        meta.append(_("miles").format(d=f"{miles:.1f}"))
+    state, pill = _status_pill(row.get("Hours", ""))
+    why = (f'<p class="gwi-row-why">{_ICON_SPARKLE.replace("18", "12")}'
+           f'{esc(search_reasons[name])}</p>') if name in search_reasons else ""
+    return (
+        f'<div class="gwi-row">'
+        + (f'<span class="gwi-row-n">{rank}</span>' if rank else "")
+        + f'<div class="gwi-row-main"><p class="gwi-row-name">{esc(name)}</p>'
+        f'<p class="gwi-row-meta">{esc(" · ".join(p for p in meta if p))}</p>'
+        f'<span class="gwi-pill gwi-pill--{state}">{esc(pill)}</span>{why}</div></div>'
+    )
+
+
+def _place_card_html(row) -> str:
+    """The full profile of one org, read top to bottom: what it is, whether it's
+    open, how to reach it, what you can get there and where."""
+    esc = html.escape
+    name = str(row["Name"])
+    meta = " · ".join(p for p in (_org_type_label(str(row.get("OrgType", ""))),
+                                  str(row.get("City", "")).strip()) if p)
+    hours = str(row.get("Hours", "")).strip()
+    state, pill = _status_pill(hours)
+    checked = _checked_label(row.get("HoursVerifiedOn")) if hours else ""
+
+    acts = []
+    phone = str(row.get("Phone", "")).strip()
+    digits = re.sub(r"\D", "", phone)
+    if len(digits) >= 10:
+        acts.append(f'<a class="gwi-act gwi-act--primary" href="tel:+1{digits[-10:]}">'
+                    f'{_ICON_PHONE}{_("call")}</a>')
+    if pd.notna(row.get("Latitude")) and pd.notna(row.get("Longitude")):
+        acts.append(f'<a class="gwi-act" href="{_directions_url(row["Latitude"], row["Longitude"])}" '
+                    f'target="_blank" rel="noopener noreferrer">{_ICON_PIN}{_("get_directions")}</a>')
+    url = str(row.get("URL", "")).strip()
+    if url:
+        href = url if url.startswith("http") else f"https://{url}"
+        acts.append(f'<a class="gwi-act" href="{esc(href)}" target="_blank" '
+                    f'rel="noopener noreferrer">{_ICON_GLOBE}{_("sec_website")}</a>')
+
+    out = [
+        f'<article class="gwi-place"><header class="gwi-place-hd">'
+        f'<h2 class="gwi-place-name">{esc(name)}</h2>'
+        + (f'<p class="gwi-place-meta">{esc(meta)}</p>' if meta else "")
+        + f'<div class="gwi-status-row"><span class="gwi-pill gwi-pill--{state}">{esc(pill)}</span>'
+        + (f'<span class="gwi-checked">{esc(_("hours_checked").format(d=checked))}</span>' if checked else "")
+        + "</div>"
+        + (f'<div class="gwi-acts">{"".join(acts)}</div>' if acts else "")
+        + "</header>"
+    ]
+    about = _description(row)
+    if about:
+        out.append(f'<p class="gwi-place-about">{esc(about)}</p>')
+
+    # Quick facts: only what the org's own site states (scripts/extract_details.py).
+    facts = [(_(k), str(row.get(c, "")).strip()) for k, c in
+             (("sec_who", "WhoItsFor"), ("sec_cost", "Cost"),
+              ("sec_lang", "Languages"), ("sec_how", "HowToGetHelp"))]
+    facts = [(k, v) for k, v in facts if v]
+    if facts:
+        out.append('<dl class="gwi-facts">' + "".join(
+            f"<div><dt>{esc(k)}</dt><dd>{esc(v)}</dd></div>" for k, v in facts) + "</dl>")
+
+    if hours:
+        src = str(row.get("HoursSourceURL", "")).strip()
+        out.append(
+            f'<section class="gwi-place-sec"><h3>{_("sec_hours")}</h3>{_hours_html(hours)}'
+            + (f'<p class="gwi-place-src"><a href="{esc(src)}" target="_blank" '
+               f'rel="noopener noreferrer">{_("hours_source_link")}</a></p>'
+               if src.startswith("http") else "")
+            + "</section>")
+
+    # Services grouped under their categories, in the directory's own order.
+    by_cat: dict[str, list[str]] = {}
+    for c, s in sorted(row.get("Specifics") or [],
+                       key=lambda p: (CATEGORY_ORDER.index(p[0]) if p[0] in CATEGORY_ORDER else 99, p[1])):
+        by_cat.setdefault(c, []).append(specific_label(c, s, st.session_state["lang"]))
+    if by_cat:
+        out.append(f'<section class="gwi-place-sec"><h3>{_("sec_services")}</h3>' + "".join(
+            f'<div class="gwi-svc-group"><p>{esc(category_label(c, st.session_state["lang"]))}</p>'
+            f'<div class="gwi-tags">{"".join(f"<span>{esc(s)}</span>" for s in svcs)}</div></div>'
+            for c, svcs in by_cat.items()) + "</section>")
+    elif row.get("SvcTagList"):
+        out.append(f'<section class="gwi-place-sec"><h3>{_("sec_services")}</h3><div class="gwi-tags">'
+                   + "".join(f"<span>{esc(s)}</span>" for s in row["SvcTagList"]) + "</div></section>")
+
+    locs = [l for l in _org_locations(name) if l.get("Kind") != "admin"]
+    if len(locs) > 1:
+        items = []
+        for loc in locs:
+            addr = ", ".join(p for p in (loc.get(k, "").strip() for k in ("Address", "City")) if p)
+            title = loc.get("LocationName", "").strip() or addr
+            items.append(
+                f'<li><b>{esc(title)}</b>'
+                + (f'<span>{esc(loc["ServicesHere"].strip())}</span>' if loc.get("ServicesHere", "").strip() else "")
+                + (f'<span>{esc(addr)} · <a href="{_directions_url_address(loc)}" target="_blank" '
+                   f'rel="noopener noreferrer">{_("loc_directions")}</a></span>' if addr else "")
+                + "</li>")
+        out.append(f'<section class="gwi-place-sec"><h3>{_("sec_locations")} ({len(locs)})</h3>'
+                   f'<ul class="gwi-locs">{"".join(items)}</ul></section>')
+
+    reports = []
+    for col, label in (("ImpactReport", _("sec_impact")), ("StrategicPlan", _("sec_strategic"))):
+        v = str(row.get(col, "")).strip()
+        if v:
+            reports.append(f'<a href="{esc(v if v.startswith("http") else "https://" + v)}" '
+                           f'target="_blank" rel="noopener noreferrer">{esc(label)}</a>')
+    if reports:
+        out.append(f'<p class="gwi-place-reports">{" · ".join(reports)}</p>')
+    out.append("</article>")
+    return "".join(out)
+
+
+def _fit_view(lats, lons, width_px: int = 600, height_px: int = PANE_H) -> tuple[list, int]:
+    """Center and zoom that fit every result on the map. st_folium takes a
+    center and zoom rather than bounds, so the zoom is worked out from the
+    span the results cover (Web Mercator: each zoom level halves the span)."""
+    from math import cos, floor, log2, radians
+    lat_lo, lat_hi, lon_lo, lon_hi = float(lats.min()), float(lats.max()), float(lons.min()), float(lons.max())
+    center = [(lat_lo + lat_hi) / 2, (lon_lo + lon_hi) / 2]
+    lon_span = max(lon_hi - lon_lo, 0.004) * 1.25        # a margin around the outer pins
+    lat_span = max(lat_hi - lat_lo, 0.004) * 1.25 / cos(radians(center[0]))
+    zoom = floor(min(log2(width_px * 360 / (256 * lon_span)), log2(height_px * 360 / (256 * lat_span))))
+    return center, max(9, min(15, zoom))
+
+
+def _ring(lat: float, lon: float) -> folium.FeatureGroup:
+    """A soft ring around the selected org's pin, added without redrawing the map."""
+    fg = folium.FeatureGroup(name="selected")
+    folium.CircleMarker(location=[lat, lon], radius=24, color=ACCENT, weight=3,
+                        fill=True, fill_color=ACCENT, fill_opacity=0.12).add_to(fg)
+    return fg
+
 
 # ── tabs ──────────────────────────────────────────────────────────────────────
-tab_map, tab_dir, tab_detail = st.tabs(
-    [_("tab_map"), _("tab_directory"), _("tab_org_detail")]
-)
+tab_map, tab_dir, tab_detail = st.tabs([_("tab_map"), _("tab_directory"), _("tab_org_detail")])
 
 
 # ══════════════════════════════════════════════════════════
@@ -3055,188 +3199,279 @@ with tab_map:
 
     if filtered.empty:
         _empty_state()
-    elif map_data.empty:
-        st.info(_("no_coords"))
     else:
-        m = folium.Map(
-            location=[42.7070, -71.1631],
-            zoom_start=13,
-            tiles=None,
-        )
-        _add_basemap_layers(m)
-        m.get_root().header.add_child(
-            folium.Element(f'<link rel="stylesheet" href="{FONTS_URL}">' + _popup_css())
-        )
+        names_now = set(filtered["Name"])
+        if st.session_state.get("sel_org") not in names_now:
+            st.session_state["sel_org"] = None
+        col_list, col_map = st.columns([5, 7], gap="medium")
 
-        lawrence_geojson = load_lawrence_boundary(BOUNDARY_PATH)
-        if lawrence_geojson:
-            # Drawn as two stacked lines inside one FeatureGroup: a solid white
-            # casing underneath and the navy dashes on top. Esri Streets — the
-            # default basemap — draws its own faint municipal boundaries, and a
-            # bare navy dash disappears into them. The white halo lifts the
-            # outline off Streets, Topo and Satellite alike. The FeatureGroup
-            # keeps it to one checkbox in the layer picker instead of two.
-            boundary_group = folium.FeatureGroup(name=_("boundary_layer_name"))
-            folium.GeoJson(
-                lawrence_geojson,
-                style_function=lambda _f: {
-                    "color": "#ffffff",
-                    "weight": 7,
-                    "opacity": 0.9,
-                    "fill": False,
-                },
-            ).add_to(boundary_group)
-            folium.GeoJson(
-                lawrence_geojson,
-                style_function=lambda _f: {
-                    "color": BRAND_DARK,
-                    "weight": 3.5,
-                    "opacity": 1,
-                    "fillColor": BRAND_DARK,
-                    "fillOpacity": 0.04,
-                    "dashArray": "10 6",
-                },
-            ).add_to(boundary_group)
-            boundary_group.add_to(m)
-
-        # (key, org marker, its hidden site layer, points to frame, name, numbered
-        # site markers) — consumed after the loop to emit the JS that toggles them.
-        site_registry: list[
-            tuple[str, folium.Marker, folium.FeatureGroup, list, str, list]
-        ] = []
-        # Every org pin, so focus mode knows what to fade.
-        all_org_markers: list[folium.Marker] = []
-
-        # Orgs sharing one building each keep their own pin, nudged sideways
-        # so none hides another.
-        offset_of: dict = {}
-        for members in _shared_buildings(map_data):
-            ordered = sorted(members, key=lambda i: str(map_data.at[i, "Name"]).lower())
-            for idx, dx in zip(ordered, _fan_offsets(len(ordered))):
-                offset_of[idx] = dx
-
-        for _idx, row in map_data.iterrows():
-            # single pin colour — the category legend is gone from the UI, so
-            # per-category colours would have nothing to decode them
-            pin_color = BRAND_MED
-            org_type = _org_type_label(row["OrgType"])
-            url = row["URL"]
-            impact = row.get("ImpactReport", "")
-            strategic = row.get("StrategicPlan", "")
-            phone = str(row.get("Phone", "")).strip()
-            hours = str(row.get("Hours", "")).strip()
-
-            # Status leads — it is what the pin is usually clicked for — then
-            # where and how to reach them. Icons stand in for the old label
-            # column, which spent a third of the popup's width on "Address".
-            today_html = _hours_today_html(hours)
-            checked = _checked_date(row.get("HoursVerifiedOn", "")) if hours else ""
-            body_html = _status_badge_html(_schedules(hours)) + (
-                f'<div class="gwi-today">{today_html}</div>' if today_html else ""
-            ) + (
-                # A wrong "open" is worse than no badge, so say how fresh it is.
-                f'<div class="gwi-checked">{_("hours_source").format(d=checked)}</div>'
-                if checked
-                else ""
-            )
-            body_html += _info_line(f"{row['Address']}, {row['City']}, {row['State']}")
-            if phone:
-                body_html += _info_line(_tel_link(phone))
-
-            key = f"s{_idx}"
-            plan = _site_plan(row, _group_by_address(_org_locations(row["Name"])))
-            site_layer, site_bounds, site_markers = _site_layer(m, row, plan, key)
-
-            # An org with several places leads with them — that list is what
-            # the numbered pins are keyed to. Services follow.
-            body_html += _locations_html(
-                plan, key if site_layer is not None else None, len(site_markers)
-            )
-            svc_items = _smart_split(row.get("Services", ""))
-            if svc_items:
-                body_html += (
-                    f'<div class="gwi-sec">{_("popup_services")}</div>'
-                    + _chips_html(svc_items, keep=3 if plan else 4)
-                )
-
-            reports = []
-            if str(impact).strip():
-                reports.append(f'{_("popup_impact")}: {_link_cell(impact)}')
-            if str(strategic).strip():
-                reports.append(f'{_("popup_strategic")}: {_link_cell(strategic)}')
-            if reports:
-                body_html += f'<div class="gwi-reports">{" · ".join(reports)}</div>'
-
-            directions_url = _directions_url(row["Latitude"], row["Longitude"])
-            action_html = (
-                f'<a class="gwi-btn" href="{directions_url}" target="_blank" '
-                f'>{_("get_directions")}</a>'
-            )
-            if url:
-                action_html += (
-                    f'<a class="gwi-btn gwi-btn--ghost" href="{url}" target="_blank">'
-                    f'{_("visit_website")}</a>'
-                )
+        # The map is drawn first so a pin clicked on it can choose the place
+        # card the left pane shows in this same run.
+        with col_map:
+            if map_data.empty:
+                st.info(_("no_coords"))
             else:
-                action_html += (
-                    f'<span class="gwi-muted gwi-small">{_("no_website_listed")}</span>'
+                m = folium.Map(
+                    location=[42.7070, -71.1631],
+                    zoom_start=13,
+                    tiles=None,
+                )
+                _add_basemap_layers(m)
+                m.get_root().header.add_child(
+                    folium.Element(f'<link rel="stylesheet" href="{FONTS_URL}">' + _popup_css())
                 )
 
-            sub = f'<div class="gwi-pop-sub">{org_type}</div>' if org_type else ""
-            dx = offset_of.get(_idx, 0)
-            popup_html = (
-                f'<div class="gwi-pop">'
-                f'<div class="gwi-pop-hd">{row["Name"]}{sub}</div>'
-                f'<div class="gwi-pop-bd">{body_html}</div>'
-                f'<div class="gwi-pop-ft">{action_html}</div>'
-                f"</div>"
-            )
+                lawrence_geojson = load_lawrence_boundary(BOUNDARY_PATH)
+                if lawrence_geojson:
+                    # Drawn as two stacked lines inside one FeatureGroup: a solid white
+                    # casing underneath and the navy dashes on top. Esri Streets — the
+                    # default basemap — draws its own faint municipal boundaries, and a
+                    # bare navy dash disappears into them. The white halo lifts the
+                    # outline off Streets, Topo and Satellite alike. The FeatureGroup
+                    # keeps it to one checkbox in the layer picker instead of two.
+                    boundary_group = folium.FeatureGroup(name=_("boundary_layer_name"))
+                    folium.GeoJson(
+                        lawrence_geojson,
+                        style_function=lambda _f: {
+                            "color": "#ffffff",
+                            "weight": 7,
+                            "opacity": 0.9,
+                            "fill": False,
+                        },
+                    ).add_to(boundary_group)
+                    folium.GeoJson(
+                        lawrence_geojson,
+                        style_function=lambda _f: {
+                            "color": BRAND_DARK,
+                            "weight": 3.5,
+                            "opacity": 1,
+                            "fillColor": BRAND_DARK,
+                            "fillOpacity": 0.04,
+                            "dashArray": "10 6",
+                        },
+                    ).add_to(boundary_group)
+                    boundary_group.add_to(m)
 
-            n_places = len(site_markers) + 1
-            tooltip_html = f'<div class="gwi-tt"><b>{row["Name"]}</b>' + (
-                f'<span>{_("pin_multi_hint").format(n=n_places)}</span>'
-                if site_markers
-                else ""
-            ) + "</div>"
+                # (key, org marker, its hidden site layer, points to frame, name, numbered
+                # site markers) — consumed after the loop to emit the JS that toggles them.
+                site_registry: list[
+                    tuple[str, folium.Marker, folium.FeatureGroup, list, str, list]
+                ] = []
+                # Every org pin, so focus mode knows what to fade.
+                all_org_markers: list[folium.Marker] = []
 
-            org_marker = folium.Marker(
-                location=[row["Latitude"], row["Longitude"]],
-                popup=folium.Popup(popup_html, max_width=360),
-                tooltip=folium.Tooltip(tooltip_html),
-                icon=folium.DivIcon(
-                    html=_pin_svg(pin_color, count=n_places if site_markers else 0),
-                    icon_size=(25, 41),
-                    icon_anchor=(12 - dx, 41),
-                    popup_anchor=(dx, -38),
-                    class_name="empty",
-                ),
-            )
-            org_marker.add_to(m)
-            all_org_markers.append(org_marker)
-            if site_layer is not None:
-                site_registry.append(
-                    (key, org_marker, site_layer, site_bounds, row["Name"], site_markers)
+                # Orgs sharing one building each keep their own pin, nudged sideways
+                # so none hides another.
+                offset_of: dict = {}
+                for members in _shared_buildings(map_data):
+                    ordered = sorted(members, key=lambda i: str(map_data.at[i, "Name"]).lower())
+                    for idx, dx in zip(ordered, _fan_offsets(len(ordered))):
+                        offset_of[idx] = dx
+
+                for _idx, row in map_data.iterrows():
+                    # single pin colour — the category legend is gone from the UI, so
+                    # per-category colours would have nothing to decode them
+                    pin_color = BRAND_MED
+                    org_type = _org_type_label(row["OrgType"])
+                    url = row["URL"]
+                    impact = row.get("ImpactReport", "")
+                    strategic = row.get("StrategicPlan", "")
+                    phone = str(row.get("Phone", "")).strip()
+                    hours = str(row.get("Hours", "")).strip()
+
+                    # Status leads — it is what the pin is usually clicked for — then
+                    # where and how to reach them. Icons stand in for the old label
+                    # column, which spent a third of the popup's width on "Address".
+                    today_html = _hours_today_html(hours)
+                    checked = _checked_date(row.get("HoursVerifiedOn", "")) if hours else ""
+                    body_html = _status_badge_html(_schedules(hours)) + (
+                        f'<div class="gwi-today">{today_html}</div>' if today_html else ""
+                    ) + (
+                        # A wrong "open" is worse than no badge, so say how fresh it is.
+                        f'<div class="gwi-checked">{_("hours_source").format(d=checked)}</div>'
+                        if checked
+                        else ""
+                    )
+                    body_html += _info_line(f"{row['Address']}, {row['City']}, {row['State']}")
+                    if phone:
+                        body_html += _info_line(_tel_link(phone))
+
+                    key = f"s{_idx}"
+                    plan = _site_plan(row, _group_by_address(_org_locations(row["Name"])))
+                    site_layer, site_bounds, site_markers = _site_layer(m, row, plan, key)
+
+                    # An org with several places leads with them — that list is what
+                    # the numbered pins are keyed to. Services follow.
+                    body_html += _locations_html(
+                        plan, key if site_layer is not None else None, len(site_markers)
+                    )
+                    # Services and reports live in the place card beside the
+                    # map; the popup stays a quick look: status, address, phone.
+
+                    directions_url = _directions_url(row["Latitude"], row["Longitude"])
+                    action_html = (
+                        f'<a class="gwi-btn" href="{directions_url}" target="_blank" '
+                        f'>{_("get_directions")}</a>'
+                    )
+                    if url:
+                        action_html += (
+                            f'<a class="gwi-btn gwi-btn--ghost" href="{url}" target="_blank">'
+                            f'{_("visit_website")}</a>'
+                        )
+                    else:
+                        action_html += (
+                            f'<span class="gwi-muted gwi-small">{_("no_website_listed")}</span>'
+                        )
+
+                    sub = f'<div class="gwi-pop-sub">{org_type}</div>' if org_type else ""
+                    dx = offset_of.get(_idx, 0)
+                    popup_html = (
+                        f'<div class="gwi-pop">'
+                        f'<div class="gwi-pop-hd">{row["Name"]}{sub}</div>'
+                        f'<div class="gwi-pop-bd">{body_html}</div>'
+                        f'<div class="gwi-pop-ft">{action_html}</div>'
+                        f"</div>"
+                    )
+
+                    n_places = len(site_markers) + 1
+                    tooltip_html = f'<div class="gwi-tt"><b>{row["Name"]}</b>' + (
+                        f'<span>{_("pin_multi_hint").format(n=n_places)}</span>'
+                        if site_markers
+                        else ""
+                    ) + "</div>"
+
+                    org_marker = folium.Marker(
+                        location=[row["Latitude"], row["Longitude"]],
+                        popup=folium.Popup(popup_html, max_width=360),
+                        tooltip=folium.Tooltip(tooltip_html),
+                        icon=folium.DivIcon(
+                            html=_pin_svg(pin_color, count=n_places if site_markers else 0),
+                            icon_size=(25, 41),
+                            icon_anchor=(12 - dx, 41),
+                            popup_anchor=(dx, -38),
+                            class_name="empty",
+                        ),
+                    )
+                    org_marker.add_to(m)
+                    all_org_markers.append(org_marker)
+                    if site_layer is not None:
+                        site_registry.append(
+                            (key, org_marker, site_layer, site_bounds, row["Name"], site_markers)
+                        )
+
+                folium.LayerControl(collapsed=True).add_to(m)
+
+                if site_registry:
+                    _MapScript(_site_toggle_js(m, site_registry, all_org_markers)).add_to(m)
+
+
+                sel = st.session_state.get("sel_org")
+                sel_row = map_data[map_data["Name"] == sel]
+                if not sel_row.empty:
+                    lat0, lon0 = float(sel_row.iloc[0]["Latitude"]), float(sel_row.iloc[0]["Longitude"])
+                    center, zoom = [lat0, lon0], 16
+                    ring = _ring(lat0, lon0)
+                else:
+                    # Frame the results: everything when browsing, the matches
+                    # when searching or filtering.
+                    if has_filters:
+                        center, zoom = _fit_view(map_data["Latitude"], map_data["Longitude"])
+                    else:
+                        center, zoom = [42.7070, -71.1631], 13
+                    ring = None
+                out = st_folium(
+                    m, key="explore_map", width="stretch", height=PANE_H,
+                    center=center, zoom=zoom, feature_group_to_add=ring,
+                    returned_objects=["last_object_clicked_tooltip"],
                 )
+                # A pin click opens that org's card. Only act on a new click:
+                # the last one is reported again on every rerun.
+                tip = (out or {}).get("last_object_clicked_tooltip") or ""
+                if tip and tip != st.session_state.get("_last_pin"):
+                    st.session_state["_last_pin"] = tip
+                    hit = max((n for n in names_now if tip.strip().startswith(n)), key=len, default=None)
+                    if hit and hit != st.session_state.get("sel_org"):
+                        st.session_state["sel_org"] = hit
+                        st.rerun()
+                st.caption(_("map_caption").format(n=len(map_data)))
+                if FEEDBACK_FORM_URL:
+                    st.caption(f"[{_('missing_org')}]({FEEDBACK_FORM_URL})")
+                # The badges are computed once per rerun, so a tab left open overnight
+                # would otherwise show yesterday's answer with nothing to say so.
+                _as_of = _now_local()
+                st.caption(
+                    _("status_asof").format(
+                        t=f'{_day_names()[_as_of.weekday()]} {_as_of.strftime("%-I:%M %p")}'
+                    )
+                )
+                if not lawrence_geojson:
+                    st.caption(_("boundary_unavailable"))
 
-        folium.LayerControl(collapsed=True).add_to(m)
+        with col_list:
+            sel = st.session_state.get("sel_org")
+            if sel:
+                st.button("← " + _("back_to_results"), key="rail_back", on_click=_unpick_org)
+                with st.container(height=PANE_H - 48, key="gwi_place", border=False):
+                    prow = filtered[filtered["Name"] == sel].iloc[0]
+                    st.markdown(_place_card_html(prow), unsafe_allow_html=True)
+                    with st.expander(_("share_one")):
+                        st.code(_share_text(filtered[filtered["Name"] == sel]), language=None, wrap_lines=True)
+            else:
+                ranked = bool(search)
+                sort_opts = ["best" if ranked else "az", "near", "open"]
+                sort_names = {"best": _("sort_best"), "az": _("sort_az"),
+                              "near": _("sort_near"), "open": _("sort_open")}
+                # "Best match" exists only for a search, "A–Z" only when browsing.
+                if st.session_state.get("rail_sort") not in sort_opts:
+                    st.session_state["rail_sort"] = sort_opts[0]
+                n_txt = _("rail_count") if has_filters else _("rail_count_all")
+                st.markdown(f'<p class="gwi-rail-count">{n_txt.format(n=n_filtered)}</p>',
+                            unsafe_allow_html=True)
+                sort = st.segmented_control(
+                    _("sort_label"), sort_opts, format_func=sort_names.get,
+                    key="rail_sort", label_visibility="collapsed",
+                ) or sort_opts[0]
 
-        if site_registry:
-            _MapScript(_site_toggle_js(m, site_registry, all_org_markers)).add_to(m)
+                listed, dist = filtered, {}
+                if sort == "near":
+                    near = st.text_input(_("near_label"), placeholder=_("near_placeholder"),
+                                         key="near", label_visibility="collapsed")
+                    origin = _geocode(near) if near.strip() else None
+                    if near.strip() and origin is None:
+                        st.caption(_("near_not_found"))
+                    if origin:
+                        for _ix, r in filtered.iterrows():
+                            d = _nearest_miles(r, origin)
+                            if d is not None:
+                                dist[r["Name"]] = d
+                        listed = filtered.loc[sorted(filtered.index,
+                                                     key=lambda i: dist.get(filtered.at[i, "Name"], 1e9))]
+                elif sort == "open":
+                    rank_open = {"open": 0, "closed": 1, "unknown": 2}
+                    listed = filtered.loc[sorted(
+                        filtered.index,
+                        key=lambda i: rank_open[_status_pill(filtered.at[i, "Hours"])[0]])]
+                elif sort == "az":
+                    listed = filtered.sort_values("Name", key=lambda c: c.str.lower())
 
-        st_folium(m, width="stretch", height=620, returned_objects=[])
-        st.caption(_("map_caption").format(n=len(map_data)))
-        if FEEDBACK_FORM_URL:
-            st.caption(f"[{_('missing_org')}]({FEEDBACK_FORM_URL})")
-        # The badges are computed once per rerun, so a tab left open overnight
-        # would otherwise show yesterday's answer with nothing to say so.
-        _as_of = _now_local()
-        st.caption(
-            _("status_asof").format(
-                t=f'{_day_names()[_as_of.weekday()]} {_as_of.strftime("%-I:%M %p")}'
-            )
-        )
-        if not lawrence_geojson:
-            st.caption(_("boundary_unavailable"))
+                rail_h = PANE_H - (150 if sort == "near" else 92)
+                with st.container(height=rail_h, key="gwi_rail", border=False):
+                    show_rank = ranked and sort == "best"
+                    for i, (_ix, r) in enumerate(listed.iterrows(), 1):
+                        with st.container(key=f"row_{i}"):
+                            st.markdown(_row_html(r, i if show_rank else None, dist.get(r["Name"])),
+                                        unsafe_allow_html=True)
+                            st.button(str(r["Name"]), key=f"pick_{i}", on_click=_pick_org,
+                                      args=(r["Name"],))
+                if any(n in search_reasons for n in listed["Name"]):
+                    st.caption(_("ai_matches_note"))
+                with st.expander(_("share_title")):
+                    picks = st.multiselect(_("share_pick"), list(listed["Name"]), key="share_picks",
+                                           placeholder=_("share_placeholder"))
+                    if picks:
+                        st.caption(_("share_help"))
+                        st.code(_share_text(listed[listed["Name"].isin(picks)]),
+                                language=None, wrap_lines=True)
 
 
 # ══════════════════════════════════════════════════════════
@@ -3350,180 +3585,63 @@ with tab_dir:
 
 
 # ══════════════════════════════════════════════════════════
-# TAB 3 — ORGANIZATION DETAIL
+# TAB 3 — ORGANIZATION DETAILS
 # ══════════════════════════════════════════════════════════
+# Any one organization in full, picked by name: the same place card as the Map
+# tab, with room beside it for a map of where it is. Follows the Map tab, so an
+# org picked there is the one shown here.
 with tab_detail:
     if filtered.empty:
         _empty_state()
     else:
-        selected_name = st.selectbox(
-            _("select_org"),
-            sorted(filtered["Name"].tolist()),
-            key="detail_select",
-        )
-        matches = filtered[filtered["Name"] == selected_name]
-        if matches.empty:
-            st.warning(_("org_not_found"))
-        else:
-            row = matches.iloc[0]
+        names = sorted(filtered["Name"], key=str.lower)
+        picked_on_map = st.session_state.get("sel_org")
+        if picked_on_map in names and picked_on_map != st.session_state.get("_detail_follow"):
+            st.session_state["_detail_follow"] = picked_on_map
+            st.session_state["detail_select"] = picked_on_map
+        if st.session_state.get("detail_select") not in names:
+            st.session_state["detail_select"] = names[0]
+        choice = st.selectbox(_("select_org"), names, key="detail_select")
+        drow = filtered[filtered["Name"] == choice].iloc[0]
 
+        d_main, d_side = st.columns([7, 5], gap="medium")
+        with d_main:
+            with st.container(key="gwi_detail_card", border=False):
+                st.markdown(_place_card_html(drow), unsafe_allow_html=True)
+                with st.expander(_("share_one")):
+                    st.code(_share_text(filtered[filtered["Name"] == choice]), language=None, wrap_lines=True)
+        with d_side:
+            if pd.notna(drow["Latitude"]) and pd.notna(drow["Longitude"]):
+                lat_d, lon_d = float(drow["Latitude"]), float(drow["Longitude"])
+                mini = folium.Map(location=[lat_d, lon_d], zoom_start=15, tiles=None)
+                _add_basemap(mini)
+                mini.get_root().header.add_child(folium.Element(
+                    "<style>.leaflet-control-attribution{font-size:10px!important}</style>"))
+                folium.Marker(
+                    location=[lat_d, lon_d], tooltip=str(drow["Name"]),
+                    icon=folium.DivIcon(html=_pin_svg(ACCENT), icon_size=(25, 41),
+                                        icon_anchor=(12, 41), class_name="empty"),
+                ).add_to(mini)
+                for loc in _org_locations(drow["Name"]):
+                    try:
+                        folium.CircleMarker([float(loc["Latitude"]), float(loc["Longitude"])], radius=6,
+                                            color=ACCENT, fill=True, fill_opacity=0.6,
+                                            tooltip=loc.get("LocationName") or None).add_to(mini)
+                    except (TypeError, ValueError, KeyError):
+                        pass
+                st_folium(mini, key="detail_map", width="stretch", height=360,
+                          center=[lat_d, lon_d], zoom=15, returned_objects=[])
+            else:
+                st.info(_("no_map_coords"))
+            addr = ", ".join(p for p in (str(drow.get(k, "")).strip() for k in ("Address", "City", "State", "Zip")) if p)
+            phone = str(drow.get("Phone", "")).strip()
             st.markdown(
-                f'<div style="border-bottom:1px solid {BORDER};padding:12px 0 16px;'
-                f'margin-bottom:8px;">'
-                f'<h2 class="gwi-detail-h">{row["Name"]}</h2>'
-                f'<p style="color:{TEXT_MID};font-size:15px;margin:4px 0 0;">'
-                f"{_org_type_label(row['OrgType'])}</p>"
-                + (f'<p class="gwi-detail-about">{html.escape(_description(row))}</p>'
-                   if _description(row) else "")
+                '<div class="gwi-detail-contact">'
+                + (f'<p><span>{_("popup_address")}</span>{html.escape(addr)}</p>' if addr else "")
+                + (f'<p><span>{_("sec_phone")}</span>{_tel(phone)}</p>' if phone else "")
                 + "</div>",
                 unsafe_allow_html=True,
             )
-
-            def section_label(text):
-                st.markdown(
-                    f"<p style='font-size:14px;font-weight:600;color:{TEXT_MID};"
-                    f"margin:18px 0 4px;'>{text}</p>",
-                    unsafe_allow_html=True,
-                )
-
-            c1, c2 = st.columns(2)
-
-            with c1:
-                section_label(_("sec_location"))
-                addr_parts = [row["Address"], row["City"], row["State"], row["Zip"]]
-                st.write(", ".join(p for p in addr_parts if p) or _("not_available"))
-
-                # Only collected for a handful of orgs so far — the section is
-                # hidden rather than shown empty for the rest.
-                detail_phone = str(row.get("Phone", "")).strip()
-                if detail_phone:
-                    section_label(_("sec_phone"))
-                    st.markdown(_tel_link(detail_phone), unsafe_allow_html=True)
-
-                detail_hours_raw = str(row.get("Hours", "")).strip()
-                section_label(_("sec_hours"))
-                st.markdown(
-                    _status_badge_html(_schedules(detail_hours_raw)),
-                    unsafe_allow_html=True,
-                )
-                if detail_hours_raw:
-                    # Full width here, so the whole week for every service is
-                    # shown outright rather than folded the way the popup needs.
-                    st.markdown(
-                        _hours_html(detail_hours_raw), unsafe_allow_html=True
-                    )
-                src = str(row.get("HoursSourceURL", "")).strip()
-                checked = str(row.get("HoursVerifiedOn", "")).strip()
-                if checked:
-                    line = _("hours_source").format(d=_checked_date(checked))
-                    if src.startswith("http"):
-                        line += (
-                            f' · <a href="{src}" target="_blank" '
-                            f'style="color:{BRAND_MED};">{_("hours_source_link")}</a>'
-                        )
-                    st.markdown(
-                        f"<div style='color:{TEXT_MUTED};font-size:12px;'>{line}</div>",
-                        unsafe_allow_html=True,
-                    )
-
-                section_label(_("sec_website"))
-                url = row["URL"]
-                if url and url.startswith("http"):
-                    st.markdown(f"[{url}]({url})")
-                elif url:
-                    st.markdown(f"[https://{url}](https://{url})")
-                else:
-                    st.markdown(
-                        f"<span style='color:{TEXT_MID};'>{_('not_listed')}</span>",
-                        unsafe_allow_html=True,
-                    )
-
-                section_label(_("sec_impact"))
-                st.markdown(
-                    _link_cell(row.get("ImpactReport", "")), unsafe_allow_html=True
-                )
-
-                section_label(_("sec_strategic"))
-                st.markdown(
-                    _link_cell(row.get("StrategicPlan", "")), unsafe_allow_html=True
-                )
-
-            with c2:
-                section_label(_("sec_services"))
-                detail_svcs = _smart_split(row.get("Services", ""))
-                if detail_svcs:
-                    st.markdown(
-                        " ".join(
-                            f'<span class="svc-chip">{s}</span>' for s in detail_svcs
-                        ),
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    st.write(_("not_specified"))
-
-                detail_locs = _org_locations(row["Name"])
-                if detail_locs:
-                    section_label(_("sec_locations"))
-                    if any(loc.get("Kind") == "admin" for loc in detail_locs):
-                        st.info(_("loc_admin_note"))
-                    for loc in detail_locs:
-                        addr = ", ".join(
-                            p
-                            for p in (
-                                loc.get(k, "").strip()
-                                for k in ("Address", "City", "State", "Zip")
-                            )
-                            if p
-                        )
-                        title = loc.get("LocationName", "").strip()
-                        if loc.get("Kind") == "admin":
-                            title += f" ({_('loc_admin_badge')})"
-                        with st.expander(title, expanded=len(detail_locs) <= 6):
-                            if loc.get("ServicesHere", "").strip():
-                                st.markdown(f"**{loc['ServicesHere'].strip()}**")
-                            if addr:
-                                st.markdown(
-                                    f"{addr}  \n"
-                                    f"[{_('loc_directions')} →]"
-                                    f"({_directions_url_address(loc)})"
-                                )
-                            else:
-                                st.caption(_("loc_no_address"))
-                            if loc.get("Phone", "").strip():
-                                st.markdown(
-                                    _tel_link(loc["Phone"].strip()),
-                                    unsafe_allow_html=True,
-                                )
-                            if loc.get("Hours", "").strip():
-                                st.markdown(
-                                    _status_badge_html(_schedules(loc["Hours"]))
-                                    + _hours_html(loc["Hours"]),
-                                    unsafe_allow_html=True,
-                                )
-
-            if pd.notna(row["Latitude"]) and pd.notna(row["Longitude"]):
-                section_label(_("sec_map"))
-                mini = folium.Map(
-                    location=[row["Latitude"], row["Longitude"]],
-                    zoom_start=15,
-                    tiles=None,
-                )
-                _add_basemap(mini)
-                folium.Marker(
-                    location=[row["Latitude"], row["Longitude"]],
-                    tooltip=row["Name"],
-                    icon=folium.DivIcon(
-                        html=_pin_svg(ACCENT),
-                        icon_size=(25, 41),
-                        icon_anchor=(12, 41),
-                        class_name="empty",
-                    ),
-                ).add_to(mini)
-                st_folium(
-                    mini, width="stretch", height=300, returned_objects=[]
-                )
-            else:
-                st.info(_("no_map_coords"))
 
 
 # ── footer ────────────────────────────────────────────────────────────────────

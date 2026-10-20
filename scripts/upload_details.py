@@ -9,7 +9,8 @@ Only rows with "yes" in the approve column are written, with whatever edits
 you made in the sheet. "not stated" is stored as empty. new_services are only
 added for orgs that have no services yet, so existing tags are never changed.
 
-It updates rows in place; nothing is deleted. The site picks up the changes
+It updates rows in place; nothing is deleted. An org hidden while waiting for
+review (is_active false) is switched back on when its row is approved. The site picks up the changes
 within 10 minutes (its cache), or immediately after a restart.
 """
 
@@ -65,6 +66,9 @@ def main():
         # unreviewed details are easy to find later in Supabase.
         human = is_yes(r["approve"])
         values["details_reviewed_on"] = date.today().isoformat() if human else None
+        # New orgs stay hidden (is_active false) until their details are
+        # approved; approving them is what puts them on the dashboard.
+        values["is_active"] = True
 
         pairs = []
         for item in str(r.get("new_services", "")).split(";"):

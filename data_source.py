@@ -196,6 +196,12 @@ def load_from_supabase() -> tuple[pd.DataFrame, dict[str, list[dict]], Taxonomy]
             # a person approves it). Searched and shown on the org's card.
             "Description": _s(o.get("description")),
             "DescriptionEs": _s(o.get("description_es")),
+            # Resident-facing details (db/005), drafted from the org's website
+            # by scripts/extract_details.py. Empty until approved.
+            "WhoItsFor": _s(o.get("who_its_for")),
+            "Cost": _s(o.get("cost")),
+            "Languages": _s(o.get("languages")),
+            "HowToGetHelp": _s(o.get("how_to_get_help")),
             # The org's own hours summary first; a site's hours only if it has none.
             "Hours": _s(o.get("hours_text") or main.get("hours_text")),
             "HoursSourceURL": _s(o.get("hours_source_url") or main.get("source_url")),
