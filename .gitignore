@@ -9,3 +9,6 @@ __pycache__/
 data/irs/
 review/
 tests/.ai_cache.json
+
+# Local Claude Code settings
+.claude/

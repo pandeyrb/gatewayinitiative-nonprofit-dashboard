@@ -744,7 +744,7 @@ def display_label(tag: str, lang: str = "en") -> str:
 
 # ── the boss's category assignments ───────────────────────────────────────────
 # data/service_categories.csv is generated from qa/boss_categorization_2026-09-08.md
-# by scripts/parse_boss_categorization.py. It is the AUTHORITY on which category
+# by archive/scripts/parse_boss_categorization.py. It is the AUTHORITY on which category
 # a raw service belongs to — the regex rules above decide the specific canonical
 # tag, but not the category, for any service the draft names.
 #

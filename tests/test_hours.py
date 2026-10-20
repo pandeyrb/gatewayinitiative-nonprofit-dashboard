@@ -1,12 +1,15 @@
-"""Checks for hours.py, run with `python3 test_hours.py`.
+"""Checks for hours.py, run from the repo root with `python3 tests/test_hours.py`.
 
 The open/closed badge is the one piece of this dashboard that makes a claim
 about right now, so it is tested against a frozen clock rather than by eye.
 """
 
+import os
+import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from hours import format_minutes, open_status, parse_hours, weekly_grid
 
 TZ = ZoneInfo("America/New_York")

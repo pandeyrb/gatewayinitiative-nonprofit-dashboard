@@ -8,12 +8,12 @@ Run from the repo root:
 Only rows with Approved = yes (or y / x / true) are loaded, with whatever edits
 the reviewer made to Summary_EN and Summary_ES. Two things happen:
   1. data/org_descriptions.csv is updated. It's the copy in the repo, and
-     scripts/load_supabase.py reads it, so a full reload keeps the summaries.
+     archive/scripts/load_supabase.py reads it, so a full reload would keep them.
   2. organizations.description and description_es are updated in Supabase.
      The site shows them within ten minutes.
 
 Run db/004_org_descriptions.sql in Supabase once first (adds description_es).
-Needs SUPABASE_URL and SUPABASE_SECRET_KEY in .env, like load_supabase.py.
+Needs SUPABASE_URL and SUPABASE_SECRET_KEY in .env, like the other scripts that write to Supabase.
 """
 
 import argparse

@@ -1,9 +1,14 @@
 """
+ARCHIVED, DO NOT RUN AGAINST THE LIVE DATABASE. Supabase is now the source of
+truth: organizations, summaries and hours have been added and edited there
+since this first load, and a full reload from the CSVs would erase them.
+Kept for reference and for building a fresh test database only.
+
 Load the GWI directory from the repo's CSVs into Supabase.
 
 Run from the repo root:
-    python scripts/load_supabase.py --dry-run    # build everything, print counts, touch nothing
-    python scripts/load_supabase.py              # wipe the tables and load them fresh
+    python archive/scripts/load_supabase.py --dry-run    # build everything, print counts, touch nothing
+    python archive/scripts/load_supabase.py              # wipe the tables and load them fresh
 
 It is a full reload, not an update: every run deletes the directory tables and
 inserts them again from the CSVs. That is what you want while the CSVs are still
@@ -24,7 +29,8 @@ import sys
 import pandas as pd
 
 # service_taxonomy and search_utils live in the repo root, one level up.
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Archived in archive/scripts/, so the repo root is three levels up.
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
 
 from search_utils import ALIAS_GROUPS  # noqa: E402
