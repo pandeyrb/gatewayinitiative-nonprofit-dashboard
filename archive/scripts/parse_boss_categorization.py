@@ -1,8 +1,8 @@
 """
 Turn the boss's categorization markdown into machine-readable assignments.
 
-    .venv/bin/python scripts/parse_boss_categorization.py            # report
-    .venv/bin/python scripts/parse_boss_categorization.py --write    # emit CSV
+    .venv/bin/python archive/scripts/parse_boss_categorization.py            # report
+    .venv/bin/python archive/scripts/parse_boss_categorization.py --write    # emit CSV
 
 The draft at qa/boss_categorization_2026-09-08.md is the authority on which
 category each raw service tag belongs to. This parses it into
@@ -22,8 +22,10 @@ import re
 import sys
 from collections import defaultdict
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.dirname(_HERE))
+# Archived in archive/scripts/; the repo root and scripts/ are two levels up.
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_HERE = os.path.join(_ROOT, "scripts")
+sys.path.insert(0, _ROOT)
 sys.path.insert(0, _HERE)
 
 import pandas as pd

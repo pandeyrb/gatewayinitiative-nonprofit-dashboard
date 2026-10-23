@@ -3,3 +3,12 @@
 *.json
 __pycache__/
 .DS_Store
+
+# Credentials: never commit. The live site reads these from Streamlit Cloud secrets.
+.streamlit/secrets.toml
+data/irs/
+review/
+tests/.ai_cache.json
+
+# Local Claude Code settings
+.claude/

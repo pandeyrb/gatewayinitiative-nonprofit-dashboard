@@ -1,0 +1,6 @@
+date,mode,queries,hit_at_5,avg_found,zero_results,note
+2026-10-08,keyword,48,22,0.45,25,baseline
+2026-10-08,ai,48,47,0.95,0,"AI match v1, tags only"
+2026-10-08,ai,48,48,0.95,0,v1 + ranking for broad searches
+2026-10-09,keyword,48,48,0.99,0,"ranked keyword engine: needs dictionary, stopwords, typo fix, scoring (holdout set: 28/28)"
+2026-10-09,ai,48,48,0.97,0,"ranked keyword engine + AI (holdout set: 28/28)"

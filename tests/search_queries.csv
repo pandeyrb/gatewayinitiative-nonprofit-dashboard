@@ -1,0 +1,49 @@
+query,type,lang,expected_orgs,notes
+food pantry,service,en,Bread and Roses Kitchen; Lawrence YMCA; Lazarus House Ministries; Neighbors in Need; The Kindness Collaborative; The Salvation Army Lawrence Corps; American Red Cross | Massachusetts Region,drafted from: Food Pantry
+soup kitchen,service,en,Bread and Roses Kitchen; Lazarus House Ministries; Neighbors in Need; Sarah's Place Adult Day Health Center; St. Patrick's Catholic Church; The Kindness Collaborative,drafted from: Free Meals
+ESL classes,service,en,Greater Lawrence Technical School; International Institute of Greater Lawrence; Lawrence Prospera- Quintana Center; Lawrence Public Schools; Notre Dame Education Center; Phoenix Charter Academy,drafted from: English Classes (ESL)
+child care,service,en,Greater Lawrence Community Action Council (GLCAC); Greater Lawrence Technical School; International Institute of Greater Lawrence; Lawrence Catholic Academy; Lawrence YMCA; The Community Group; YWCA,drafted from: Child Care
+tutoring,service,en,Bellesini Academy; Beyond Soccer; Lawrence Boys and Girls Club; Notre Dame Cristo Rey; Squash Busters,drafted from: Tutoring & Homework Help
+job training,service,en,ACT Lawrence; Bread and Roses Housing; Greater Lawrence Community Action Council (GLCAC); Greater Lawrence Technical School; Northern Essex Community College; Suenos Basketball,drafted from: Job Training & Certificates
+first time home buyer,service,en,ACT Lawrence; Bread and Roses Housing; Essex County Habitat For Humanity; Lawrence Community Works,drafted from: First-Time Homebuyer Help
+foreclosure,service,en,ACT Lawrence; Bread and Roses Housing; Northeast Justice Center,drafted from: Foreclosure Prevention
+health insurance,service,en,Greater Lawrence Community Action Council (GLCAC); Greater Lawrence Family Health; Lawrence General Hospital,drafted from: Health Insurance Help
+summer camp,service,en,Greater Lawrence Community Boating; Lawrence YMCA; Si se puede!; Suenos Basketball; The Salvation Army Lawrence Corps; Youth Development Organization,drafted from: Summer Camps
+GED,service,en,Lawrence Prospera- Quintana Center; Lawrence Prospera- SISU,drafted from: GED & High School Equivalency
+tax preparation,service,en,Greater Lawrence Community Action Council (GLCAC); Northeast Justice Center,drafted from: Tax Preparation
+emergency shelter,service,en,Lazarus House Ministries; The Psychological Center; YWCA,drafted from: Emergency Shelter
+I can't pay my rent,need,en,ACT Lawrence; Bread and Roses Housing; Greater Lawrence Community Action Council (GLCAC),drafted from: Rent Help & Tenant Counseling; Rent Help to Prevent Eviction
+I'm getting evicted,need,en,ACT Lawrence; Bread and Roses Housing; Greater Lawrence Community Action Council (GLCAC); Northeast Justice Center,drafted from: Rent Help & Tenant Counseling; Rent Help to Prevent Eviction; Tenant Rights
+I need groceries,need,en,Bread and Roses Kitchen; Lawrence YMCA; Lazarus House Ministries; Neighbors in Need; The Kindness Collaborative; The Salvation Army Lawrence Corps; American Red Cross | Massachusetts Region; Merrimack Valley Dream Center; Merrimack Valley Food Bank,drafted from: Food Pantry; Mobile Food Distribution
+I'm hungry,need,en,Bread and Roses Kitchen; Lawrence YMCA; Lazarus House Ministries; Neighbors in Need; The Kindness Collaborative; The Salvation Army Lawrence Corps; American Red Cross | Massachusetts Region; Sarah's Place Adult Day Health Center; St. Patrick's Catholic Church,drafted from: Food Pantry; Free Meals
+my kid needs help with homework,need,en,Bellesini Academy; Beyond Soccer; Lawrence Boys and Girls Club; Notre Dame Cristo Rey; Squash Busters,drafted from: Tutoring & Homework Help
+I lost my job,need,en,Lawrence Community Works; Lawrence Partnership; The Institute for Career Transitions; City of Lawrence,drafted from: Job Search Help
+I'm pregnant,need,en,Eliot Community Human Services; Greater Lawrence Family Health; Partners for Child Development; YWCA,drafted from: Women's Health & Pregnancy
+I feel depressed and need someone to talk to,need,en,Children's Friend and Family Services- a division of JRI; Eliot Community Human Services; Sevita Health; The Psychological Center; Family Services of Merrimack Valley/LMCC; Jeanne Geiger Crisis Center; YWCA,drafted from: Counseling & Therapy; Crisis Lines & Emotional Support
+my partner hits me,need,en,Jeanne Geiger Crisis Center; YWCA,drafted from: 24-Hour Hotline; Survivor Support
+I need a doctor,need,en,Greater Lawrence Family Health; Greater Lawrence Technical School,drafted from: Primary & Walk-in Care
+activities for my elderly mother,need,en,Bread and Roses Housing; Greater Lawrence Family Health; Lawrence YMCA; Sevita Health; Sarah's Place Adult Day Health Center,drafted from: Programs for Older Adults; Adult Day Programs
+I want to start a business,need,en,EforAll; Top Notch Scholars,drafted from: Starting a Business
+I want to become a citizen,need,en,Lawrence Prospera- Quintana Center; Lawrence Public Library; Notre Dame Education Center,drafted from: Citizenship Classes & Applications
+free clothes for my kids,need,en,Hands to Help; Uncommon Threads,drafted from: Free Clothing
+help paying my heating bill,need,en,Greater Lawrence Community Action Council (GLCAC); City of Lawrence,drafted from: Heating & Utility Bill Help
+I'm homeless and need a place to sleep,need,en,Lazarus House Ministries; The Psychological Center; YWCA,drafted from: Emergency Shelter
+drug addiction help,need,en,Merrimack Valley Dream Center; The Psychological Center; The Salvation Army Lawrence Corps,drafted from: Addiction & Recovery
+comida gratis,spanish,es,Bread and Roses Kitchen; Lawrence YMCA; Lazarus House Ministries; Neighbors in Need; The Kindness Collaborative; The Salvation Army Lawrence Corps; American Red Cross | Massachusetts Region; Sarah's Place Adult Day Health Center; St. Patrick's Catholic Church,drafted from: Food Pantry; Free Meals
+clases de inglés,spanish,es,Greater Lawrence Technical School; International Institute of Greater Lawrence; Lawrence Prospera- Quintana Center; Lawrence Public Schools; Notre Dame Education Center; Phoenix Charter Academy,drafted from: English Classes (ESL)
+ayuda con la renta,spanish,es,ACT Lawrence; Bread and Roses Housing; Greater Lawrence Community Action Council (GLCAC),drafted from: Rent Help & Tenant Counseling; Rent Help to Prevent Eviction
+cuidado de niños,spanish,es,Greater Lawrence Community Action Council (GLCAC); Greater Lawrence Technical School; International Institute of Greater Lawrence; Lawrence Catholic Academy; Lawrence YMCA; The Community Group; YWCA,drafted from: Child Care
+abogado de inmigración,spanish,es,International Institute of Greater Lawrence; Northeast Justice Center,drafted from: Immigration Legal Help
+necesito trabajo,spanish,es,Lawrence Community Works; Lawrence Partnership; The Institute for Career Transitions; City of Lawrence,drafted from: Job Search Help
+necesito un médico,spanish,es,Greater Lawrence Family Health; Greater Lawrence Technical School,drafted from: Primary & Walk-in Care
+estoy embarazada,spanish,es,Eliot Community Human Services; Greater Lawrence Family Health; Partners for Child Development; YWCA,drafted from: Women's Health & Pregnancy
+foood pantry,typo,en,Bread and Roses Kitchen; Lawrence YMCA; Lazarus House Ministries; Neighbors in Need; The Kindness Collaborative; The Salvation Army Lawrence Corps; American Red Cross | Massachusetts Region,drafted from: Food Pantry
+tutering,typo,en,Bellesini Academy; Beyond Soccer; Lawrence Boys and Girls Club; Notre Dame Cristo Rey; Squash Busters,drafted from: Tutoring & Homework Help
+imigration,typo,en,International Institute of Greater Lawrence; Northeast Justice Center,drafted from: Immigration Legal Help
+GLCAC,name,en,Greater Lawrence Community Action Council (GLCAC),org name
+ymca,name,en,Lawrence YMCA,org name
+red cross,name,en,American Red Cross | Massachusetts Region,org name
+library,name,en,Lawrence Public Library,org name
+habitat for humanity,name,en,Essex County Habitat For Humanity,org name
+boys and girls club,name,en,Lawrence Boys and Girls Club,org name
+salvation army,name,en,The Salvation Army Lawrence Corps,org name

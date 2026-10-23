@@ -11,10 +11,10 @@ departs from the document.
 | `qa/boss_categorization_2026-09-08.md` | The draft, **kept exactly as received**. Never edited by code. |
 | `qa/categorization_corrections.csv` | Overlay. Four rows, each a deliberate departure with its reason. Delete a row to restore the draft's assignment. |
 | `data/service_categories.csv` | Generated. What the app reads. |
-| `scripts/parse_boss_categorization.py` | Regenerates the above and reports coverage. |
+| `archive/scripts/parse_boss_categorization.py` | Regenerates the above and reports coverage. |
 
 To change a categorization: edit the markdown (or the corrections overlay), run
-`.venv/bin/python scripts/parse_boss_categorization.py --write`, and the app
+`.venv/bin/python archive/scripts/parse_boss_categorization.py --write`, and the app
 picks it up. The draft is the source of truth, not the code.
 
 ## How it drives browsing
